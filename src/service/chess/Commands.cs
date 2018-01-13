@@ -124,10 +124,27 @@ namespace src
     }
     public class ResignCommand : ModuleBase<SocketCommandContext>
     {
+        private readonly IChessService _chessService;
+
+        public ResignCommand(IChessService chessService)
+        {
+            _chessService = chessService;
+        }
         [Command("resign")]
         public async Task SayAsync()
         {
-            await this.ReplyAsync("Resign command called.");
+            try
+            {
+                var match = await _chessService.Resign(Context.Channel.Id, this.Context.Message.Author);
+
+                var winner = match.Challenger == this.Context.Message.Author ? match.Challenged : match.Challenger;
+
+                await this.ReplyAsync($"{this.Context.Message.Author.Mention} has resigned the match. {winner.Mention} has won the game.");
+            }
+            catch(ChessException ex)
+            {
+                await this.ReplyAsync(ex.Message);
+            }
         }
     }
     public class MoveCommand : ModuleBase<SocketCommandContext>

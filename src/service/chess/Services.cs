@@ -16,6 +16,7 @@ namespace src
         List<ChessMatch> Matches { get; }
         Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2);
         Task<ChessMatch> AcceptChallenge(ulong channel, IUser player);
+        Task<ChessMatch> Resign(ulong channel, IUser player);
         int ChallengeTimeout { get; }
     }
     public class ChessService : IChessService
@@ -49,6 +50,18 @@ namespace src
             RemoveChallenge(challenge);
 
             return challenge;
+        }
+
+        public async Task<ChessMatch> Resign(ulong channel, IUser player)
+        {
+            var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
+
+            if(match == null)
+                throw new Exception($"You are not currently in a game.");
+
+            _chessMatches.Remove(match);
+
+            return await Task.FromResult(match);
         }
 
         public async Task<ChessMatch> AcceptChallenge(ulong channel, IUser player)
