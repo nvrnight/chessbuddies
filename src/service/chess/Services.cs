@@ -16,10 +16,16 @@ namespace src
         List<ChessMatch> Matches { get; }
         Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2);
         Task<ChessMatch> AcceptChallenge(ulong channel, IUser player);
+        int ChallengeTimeout { get; }
     }
     public class ChessService : IChessService
     {
-        public const int ChallengeTimeout = 30000;
+        private readonly int _challengeTimeout;
+        public ChessService(int challengeTimeout)
+        {
+            _challengeTimeout = challengeTimeout;
+        }
+        public int ChallengeTimeout { get { return _challengeTimeout; } }
         private List<ChessMatch> _chessMatches = new List<ChessMatch>();
         private List<ChessChallenge> _challenges = new List<ChessChallenge>();
         public List<ChessChallenge> Challenges { get { return _challenges; } }
@@ -89,7 +95,7 @@ namespace src
 
         private async void RemoveChallenge(ChessChallenge challenge)
         {
-            await Task.Delay(ChallengeTimeout);
+            await Task.Delay(_challengeTimeout);
 
             if(_challenges.Contains(challenge))
                 _challenges.Remove(challenge);

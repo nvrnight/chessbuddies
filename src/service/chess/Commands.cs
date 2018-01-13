@@ -116,7 +116,7 @@ namespace src
         }
         private async void ChallengeTimeout(ChessChallenge challenge)
         {
-            await Task.Delay(ChessService.ChallengeTimeout);
+            await Task.Delay(_chessService.ChallengeTimeout);
 
             if(!_chessService.Matches.Any(x => x.Channel == challenge.Channel && x.Players.Contains(challenge.Challenged) && x.Players.Contains(challenge.Challenger)))
                 await this.ReplyAsync($"Challenge timed out for {challenge.Challenger.Mention} challenging {challenge.Challenged.Mention}");

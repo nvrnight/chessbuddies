@@ -35,9 +35,12 @@ namespace src
 
             string token = config["token"];
 
+            int timeout = 30000;
+            int.TryParse(config["challengeTimeout"], out timeout);
+
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
-                .AddSingleton<IChessService, ChessService>()
+                .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout))
                 .AddSingleton<ChessGame, ChessGame>()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
