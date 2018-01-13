@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
+using ChessDotNet;
 
 namespace src
 {
@@ -37,6 +38,7 @@ namespace src
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
                 .AddSingleton<IChessService, ChessService>()
+                .AddSingleton<ChessGame, ChessGame>()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
                 .BuildServiceProvider();
@@ -111,9 +113,9 @@ namespace src
                         var move = _chessService.Move(message.Content.Substring(1, message.Content.Length - 1));
                         await context.Channel.SendMessageAsync(JsonConvert.SerializeObject(move));
                     }
-                    catch(ChessMoveParseException)
+                    catch(ChessException ex)
                     {
-                        await sendError("Error parsing move. Example move: a2a4");
+                        await sendError(ex.Message);
                     }
                     catch(Exception ex)
                     {
