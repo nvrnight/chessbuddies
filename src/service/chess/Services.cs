@@ -21,7 +21,7 @@ namespace src
         Task<ChessMatchStatus> Move(Stream stream, ulong channel, IUser player, string rawMove);
         List<ChessChallenge> Challenges { get; }
         List<ChessMatch> Matches { get; }
-        Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2);
+        Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2, Action<ChessChallenge> onTimeout = null);
         Task<ChessMatch> AcceptChallenge(ulong channel, IUser player);
         Task<bool> HasChallenge(ulong channel, IUser player);
         Task<ChessMatch> Resign(ulong channel, IUser player);
@@ -29,7 +29,7 @@ namespace src
         int ConfirmationsTimeout { get; }
 
         Task Undo(ulong channel, IUser player);
-        Task<UndoRequest> UndoRequest(ulong channel, IUser player);
+        Task<UndoRequest> UndoRequest(ulong channel, IUser player, Action<ChessMatch> onTimeout = null);
         Task<bool> HasUndoRequest(ulong channel, IUser player);
     }
     public class ChessService : IChessService
@@ -124,7 +124,7 @@ namespace src
                 board.SaveAsPng(stream);
             });
         }
-        public async Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2)
+        public async Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2, Action<ChessChallenge> onTimeout = null)
         {
             if(await PlayerIsInGame(channel, player1))
                 throw new ChessException($"{player1.Mention} is currently in a game.");
@@ -139,7 +139,7 @@ namespace src
             
             _challenges.Add(challenge);
             
-            RemoveChallenge(challenge);
+            RemoveChallenge(challenge, onTimeout);
 
             return challenge;
         }
@@ -251,21 +251,29 @@ namespace src
             return await Task.FromResult<bool>(_chessMatches.Any(x => x.Channel == channel && x.Players.Contains(player)));
         }
 
-        private async void RemoveUndoRequest(ChessMatch match)
+        private async void RemoveUndoRequest(ChessMatch match, Action<ChessMatch> onTimeout)
         {
             await Task.Delay(_confirmationsTimeout);
-            match.UndoRequest = null;
+            if(match.UndoRequest != null)
+            {
+                match.UndoRequest = null;
+                onTimeout(match);
+            }
         }
 
-        private async void RemoveChallenge(ChessChallenge challenge)
+        private async void RemoveChallenge(ChessChallenge challenge, Action<ChessChallenge> onTimeout)
         {
             await Task.Delay(_confirmationsTimeout);
 
             if(_challenges.Contains(challenge))
+            {
                 _challenges.Remove(challenge);
+                if(onTimeout != null)
+                    onTimeout(challenge);
+            }
         }
 
-        public async Task<UndoRequest> UndoRequest(ulong channel, IUser player)
+        public async Task<UndoRequest> UndoRequest(ulong channel, IUser player, Action<ChessMatch> onTimeout = null)
         {
             var match = await GetMatch(channel, player);
 
@@ -287,7 +295,7 @@ namespace src
 
             match.UndoRequest = undoRequest;
 
-            RemoveUndoRequest(match);
+            RemoveUndoRequest(match, onTimeout);
 
             return await Task.FromResult(undoRequest);
         }

@@ -52,9 +52,9 @@ namespace src
         {
             try
             {
-                var undoRequest = await _chessService.UndoRequest(Context.Channel.Id, Context.Message.Author);
-
-                UndoTimeout(undoRequest);
+                var undoRequest = await _chessService.UndoRequest(Context.Channel.Id, Context.Message.Author, async x => {
+                    await ReplyAsync($"Undo request timed out.");
+                });
 
                 await ReplyAsync($"{Context.Message.Author.Mention} is wanting to undo the previous move. Do !accept to accept.");
             }
@@ -62,22 +62,6 @@ namespace src
             {
                 await ReplyAsync(ex.Message);
             }
-        }
-
-        private async void UndoTimeout(UndoRequest undoRequest)
-        {
-            await Task.Delay(_chessService.ConfirmationsTimeout - 900);
-
-            if(undoRequest != null)
-                await this.ReplyAsync($"Undo request timed out.");
-        }
-    }
-    public class EndCommand : ModuleBase<SocketCommandContext>
-    {
-        [Command("end")]
-        public async Task SayAsync()
-        {
-            await this.ReplyAsync($"End command called.");
         }
     }
     public class AcceptCommand : ModuleBase<SocketCommandContext>
@@ -152,9 +136,9 @@ namespace src
             {
                 var user = await Context.Channel.GetUserAsync(ulong.Parse(matches[0].Groups[1].Value));
 
-                var challenge = await _chessService.Challenge(Context.Channel.Id, this.Context.Message.Author, user);
-
-                ChallengeTimeout(challenge);
+                await _chessService.Challenge(Context.Channel.Id, this.Context.Message.Author, user, async x => {
+                    await this.ReplyAsync($"Challenge timed out for {x.Challenger.Mention} challenging {x.Challenged.Mention}");
+                });
 
                 await this.ReplyAsync(this.Context.Message.Author.Mention + $" is challenging {user.Mention}.");
             }
@@ -162,13 +146,6 @@ namespace src
             {
                 await this.ReplyAsync(ex.Message);
             }
-        }
-        private async void ChallengeTimeout(ChessChallenge challenge)
-        {
-            await Task.Delay(_chessService.ConfirmationsTimeout);
-
-            if(!_chessService.Matches.Any(x => x.Channel == challenge.Channel && x.Players.Contains(challenge.Challenged) && x.Players.Contains(challenge.Challenger)))
-                await this.ReplyAsync($"Challenge timed out for {challenge.Challenger.Mention} challenging {challenge.Challenged.Mention}");
         }
     }
     public class ResignCommand : ModuleBase<SocketCommandContext>
