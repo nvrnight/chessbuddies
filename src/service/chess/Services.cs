@@ -14,6 +14,8 @@ namespace src
 {
     public interface IChessService
     {
+        Task<IUser> WhoseTurn(ulong channel, IUser player);
+        Task<ChessMatch> GetMatch(ulong channel, IUser player);
         Task WriteBoard(ulong channel, IUser player, Stream stream);
         Task<ChessMatchStatus> Move(Stream stream, ulong channel, IUser player, string rawMove);
         List<ChessChallenge> Challenges { get; }
@@ -39,6 +41,16 @@ namespace src
         public List<ChessChallenge> Challenges { get { return _challenges; } }
         public List<ChessMatch> Matches { get { return _chessMatches; } }
 
+        public async Task<IUser> WhoseTurn(ulong channel, IUser player)
+        {
+            var match = await GetMatch(channel, player);
+
+            return match.Game.WhoseTurn == Player.White ? match.Challenger : match.Challenged;
+        }
+        public async Task<ChessMatch> GetMatch(ulong channel, IUser player)
+        {
+            return await Task.FromResult(_chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player)));
+        }
         private void DrawImage(IImageProcessingContext<Rgba32> processor, string name, int x, int y)
         {
             var pieceSquare = SixLabors.ImageSharp.Image.Load(_assetService.GetImagePath($"{name}.png"));
@@ -89,6 +101,9 @@ namespace src
                             if(piece != null)
                             {
                                 var fenCharacter = piece.GetFenCharacter();
+
+                                if(fenCharacter.ToString().ToUpper() == "K" && match.Game.IsInCheck(piece.Owner))
+                                    DrawImage(processor, "red_square", columnIndex, rowIndex);
 
                                 var prefix = "white";
 
@@ -202,7 +217,8 @@ namespace src
             var status = new ChessMatchStatus
             {
                 IsOver = isOver,
-                Winner = isOver && checkMated ? player : null
+                Winner = isOver && checkMated ? player : null,
+                IsCheck = match.Game.IsInCheck(otherPlayer)
             };
 
             await WriteBoard(channel, player, stream);

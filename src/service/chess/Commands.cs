@@ -214,6 +214,15 @@ namespace src
                             overMessage += $" {result.Winner.Mention} has won the match.";
 
                         await this.ReplyAsync(overMessage);
+                    } else {
+                        var nextPlayer = await _chessService.WhoseTurn(Context.Channel.Id, Context.Message.Author);
+
+                        var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
+
+                        if(result.IsCheck)
+                            yourMoveMessage += " Check!";
+
+                        await Context.Channel.SendMessageAsync(yourMoveMessage);
                     }
                 }
             }

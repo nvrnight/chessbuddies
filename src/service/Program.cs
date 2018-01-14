@@ -123,6 +123,15 @@ namespace src
                                     overMessage += $" {moveResult.Winner.Mention} has won the match.";
 
                                 await context.Channel.SendMessageAsync(overMessage);
+                            } else {
+                                var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author);
+
+                                var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
+
+                                if(moveResult.IsCheck)
+                                    yourMoveMessage += " Check!";
+
+                                await context.Channel.SendMessageAsync(yourMoveMessage);
                             }
 
                             stream.Position = 0;
