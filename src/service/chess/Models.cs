@@ -18,7 +18,7 @@ namespace src
     }
     public class ChessMatch
     {
-        public List<ChessMove> History {get; set;}
+        public List<ChessMove> History {get; set;} = new List<ChessMove>();
         public ChessGame Game {get; set;}
         [JsonIgnore]
         public IUser Challenger {get; set;}

@@ -1,17 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ChessDotNet;
 using Discord;
 using Newtonsoft.Json;
+using SixLabors.ImageSharp;
+using SixLabors.Primitives;
 
 namespace src
 {
     public interface IChessService
     {
-        Task<ChessMatchStatus> Move(ulong channel, IUser player, string rawMove);
+        Task WriteBoard(ulong channel, IUser player, Stream stream);
+        Task<ChessMatchStatus> Move(Stream stream, ulong channel, IUser player, string rawMove);
         List<ChessChallenge> Challenges { get; }
         List<ChessMatch> Matches { get; }
         Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2);
@@ -23,9 +27,11 @@ namespace src
     public class ChessService : IChessService
     {
         private readonly int _challengeTimeout;
-        public ChessService(int challengeTimeout)
+        private readonly IAssetService _assetService;
+        public ChessService(int challengeTimeout, IAssetService assetService)
         {
             _challengeTimeout = challengeTimeout;
+            _assetService = assetService;
         }
         public int ChallengeTimeout { get { return _challengeTimeout; } }
         private List<ChessMatch> _chessMatches = new List<ChessMatch>();
@@ -33,6 +39,48 @@ namespace src
         public List<ChessChallenge> Challenges { get { return _challenges; } }
         public List<ChessMatch> Matches { get { return _chessMatches; } }
 
+        private void DrawPiece(IImageProcessingContext<Rgba32> processor, string name, int x, int y)
+        {
+            var pieceSquare = SixLabors.ImageSharp.Image.Load(_assetService.GetImagePath($"{name}.png"));
+            processor.DrawImage(pieceSquare, new Size(50, 50), new Point(x * 50 + 117, y * 50 + 19), new GraphicsOptions());
+        }
+        public async Task WriteBoard(ulong channel, IUser player, Stream stream)
+        {
+            await Task.Run(() => {
+                var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
+
+                if(match == null)
+                    throw new ChessException("You are not in a game.");
+
+                var board = SixLabors.ImageSharp.Image.Load(_assetService.GetImagePath("board.png"));
+                
+                var boardPieces = match.Game.GetBoard();
+
+                board.Mutate(processor => {
+                    for(var columnIndex = 0; columnIndex < boardPieces.Length; columnIndex++)
+                    {
+                        for(var rowIndex = 0; rowIndex < boardPieces[columnIndex].Length; rowIndex++)
+                        {
+                            var piece = boardPieces[rowIndex][columnIndex];
+
+                            if(piece != null)
+                            {
+                                var fenCharacter = piece.GetFenCharacter();
+
+                                var prefix = "white";
+
+                                if(new[] {'r', 'n', 'b', 'q', 'k', 'p'}.Contains(fenCharacter))
+                                    prefix = "black";
+
+                                DrawPiece(processor, $"{prefix}_{fenCharacter}", columnIndex, rowIndex);
+                            }
+                        }
+                    }
+                });
+
+                board.SaveAsPng(stream);
+            });
+        }
         public async Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2)
         {
             if(await PlayerIsInGame(channel, player1))
@@ -87,7 +135,7 @@ namespace src
             return await Task.FromResult<ChessMatch>(chessMatch);
         }
 
-        public async Task<ChessMatchStatus> Move(ulong channel, IUser player, string rawMove)
+        public async Task<ChessMatchStatus> Move(Stream stream, ulong channel, IUser player, string rawMove)
         {
             var moveInput = rawMove.Replace(" ", "").ToUpper();
 
@@ -109,7 +157,7 @@ namespace src
             var sourceY = moveInput[1].ToString();
             var destX = moveInput[2].ToString();
             var destY = moveInput[3].ToString();
-            var positionEnumValues = (IEnumerable<File>)Enum.GetValues(typeof(File));
+            var positionEnumValues = (IEnumerable<ChessDotNet.File>)Enum.GetValues(typeof(ChessDotNet.File));
 
             var sourcePositionX = positionEnumValues.Single(x => x.ToString("g") == sourceX);
             var destPositionX = positionEnumValues.Single(x => x.ToString("g") == destX);
@@ -133,6 +181,8 @@ namespace src
                 IsOver = isOver,
                 Winner = isOver && checkMated ? player : null
             };
+
+            await WriteBoard(channel, player, stream);
 
             if(isOver)
                 _chessMatches.Remove(match);

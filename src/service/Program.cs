@@ -40,7 +40,7 @@ namespace src
 
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
-                .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout))
+                .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout, s.GetService<IAssetService>()))
                 .AddSingleton<ChessGame, ChessGame>()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
@@ -113,14 +113,20 @@ namespace src
                 {
                     try
                     {
-                        var moveResult = await _chessService.Move(context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
+                        using(var stream = new MemoryStream())
+                        {
+                            var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
 
-                        if(moveResult.IsOver) {
-                            var overMessage = "The match is over.";
-                            if(moveResult.Winner != null)
-                                overMessage += $" {moveResult.Winner.Mention} has won the match.";
+                            if(moveResult.IsOver) {
+                                var overMessage = "The match is over.";
+                                if(moveResult.Winner != null)
+                                    overMessage += $" {moveResult.Winner.Mention} has won the match.";
 
-                            await context.Channel.SendMessageAsync(overMessage);
+                                await context.Channel.SendMessageAsync(overMessage);
+                            }
+
+                            stream.Position = 0;
+                            await context.Channel.SendFileAsync(stream, "board.png");
                         }
                     }
                     catch(ChessException ex)
