@@ -109,12 +109,19 @@ namespace src
             if (!result.IsSuccess) {
                 Func<string, Task> sendError = async (e) => { await context.Channel.SendMessageAsync(e); };
 
-                if(result.ErrorReason == "Unknown command.")
+                if(result.ErrorReason == "Unknown command." && await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author))
                 {
                     try
                     {
-                        var move = _chessService.Move(message.Content.Substring(1, message.Content.Length - 1));
-                        await context.Channel.SendMessageAsync(JsonConvert.SerializeObject(move));
+                        var moveResult = await _chessService.Move(context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
+
+                        if(moveResult.IsOver) {
+                            var overMessage = "The match is over.";
+                            if(moveResult.Winner != null)
+                                overMessage += $" {moveResult.Winner.Mention} has won the match.";
+
+                            await context.Channel.SendMessageAsync(overMessage);
+                        }
                     }
                     catch(ChessException ex)
                     {

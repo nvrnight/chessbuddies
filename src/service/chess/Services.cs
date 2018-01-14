@@ -11,12 +11,13 @@ namespace src
 {
     public interface IChessService
     {
-        Task<ChessMove> Move(string rawMove);
+        Task<ChessMatchStatus> Move(ulong channel, IUser player, string rawMove);
         List<ChessChallenge> Challenges { get; }
         List<ChessMatch> Matches { get; }
         Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2);
         Task<ChessMatch> AcceptChallenge(ulong channel, IUser player);
         Task<ChessMatch> Resign(ulong channel, IUser player);
+        Task<bool> PlayerIsInGame(ulong channel, IUser player);
         int ChallengeTimeout { get; }
     }
     public class ChessService : IChessService
@@ -86,22 +87,60 @@ namespace src
             return await Task.FromResult<ChessMatch>(chessMatch);
         }
 
-        public async Task<ChessMove> Move(string rawMove)
+        public async Task<ChessMatchStatus> Move(ulong channel, IUser player, string rawMove)
         {
-            var move = rawMove.Replace(" ", "");
+            var moveInput = rawMove.Replace(" ", "").ToUpper();
 
-            if(!Regex.IsMatch(move, "[a-h][1-8][a-h][1-8]"))
+            if(!Regex.IsMatch(moveInput, "[A-H][1-8][A-H][1-8]"))
                 throw new ChessException("Error parsing move. Example move: a2a4");
 
-            var sourceX = move[0];
-            var sourceY = move[1];
-            var destX = move[2];
-            var destY = move[3];
+            var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
 
-            return await Task.FromResult(new ChessMove { Source = new Position { X = sourceX, Y = sourceY }, Destination = new Position { X = destX, Y = destY } });
+            if(match == null)
+                throw new ChessException("You are not currently in a game");
+
+            var whoseTurn = match.Game.WhoseTurn;
+            var otherPlayer = whoseTurn == Player.White ? Player.Black : Player.White;
+
+            if((whoseTurn == Player.White && player != match.Challenger) || (whoseTurn == Player.Black && player != match.Challenged))
+                throw new ChessException("It's not your turn.");
+
+            var sourceX = moveInput[0].ToString();
+            var sourceY = moveInput[1].ToString();
+            var destX = moveInput[2].ToString();
+            var destY = moveInput[3].ToString();
+            var positionEnumValues = (IEnumerable<File>)Enum.GetValues(typeof(File));
+
+            var sourcePositionX = positionEnumValues.Single(x => x.ToString("g") == sourceX);
+            var destPositionX = positionEnumValues.Single(x => x.ToString("g") == destX);
+
+            var originalPosition = new ChessDotNet.Position(sourcePositionX, int.Parse(sourceY));
+            var destPosition = new ChessDotNet.Position(destPositionX, int.Parse(destY));
+
+            var move = new Move(originalPosition, destPosition, whoseTurn);
+
+            if(!match.Game.IsValidMove(move))
+                throw new ChessException("Invalid move.");
+
+            match.Game.ApplyMove(move, true);
+            match.History.Add(new ChessMove { Move = move, MoveDate = DateTime.Now });
+
+            var checkMated = match.Game.IsCheckmated(otherPlayer);
+            var isOver = checkMated || match.Game.IsStalemated(otherPlayer);
+
+            var status = new ChessMatchStatus
+            {
+                IsOver = isOver,
+                Winner = isOver && checkMated ? player : null
+            };
+
+            if(isOver)
+                _chessMatches.Remove(match);
+
+            return await Task.FromResult(status);
         }
 
-        private async Task<bool> PlayerIsInGame(ulong channel, IUser player)
+        public async Task<bool> PlayerIsInGame(ulong channel, IUser player)
         {
             return await Task.FromResult<bool>(_chessMatches.Any(x => x.Channel == channel && x.Players.Contains(player)));
         }

@@ -7,6 +7,14 @@ using Newtonsoft.Json;
 
 namespace src
 {
+    public class ShowCommand : ModuleBase<SocketCommandContext>
+    {
+        [Command("show")]
+        public async Task SayAsync()
+        {
+            await this.ReplyAsync($"Show command called.");
+        }
+    }
     public class RevertCommand : ModuleBase<SocketCommandContext>
     {
         [Command("revert")]
@@ -160,7 +168,15 @@ namespace src
         {
             try
             {
-                await this.ReplyAsync(JsonConvert.SerializeObject(_chessService.Move(message)));
+                var result = await _chessService.Move(Context.Channel.Id, Context.Message.Author, message);
+
+                if(result.IsOver) {
+                    var overMessage = "The match is over.";
+                    if(result.Winner != null)
+                        overMessage += $" {result.Winner.Mention} has won the match.";
+
+                    await this.ReplyAsync(overMessage);
+                }
             }
             catch(ChessException ex)
             {
