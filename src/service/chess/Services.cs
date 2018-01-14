@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ChessDotNet;
 using Discord;
+using Discord.WebSocket;
 using Newtonsoft.Json;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
@@ -25,6 +26,8 @@ namespace src
         Task<ChessMatch> Resign(ulong channel, IUser player);
         Task<bool> PlayerIsInGame(ulong channel, IUser player);
         int ChallengeTimeout { get; }
+
+        Task Undo(MemoryStream stream, ulong channel, IUser player);
     }
     public class ChessService : IChessService
     {
@@ -40,7 +43,6 @@ namespace src
         private List<ChessChallenge> _challenges = new List<ChessChallenge>();
         public List<ChessChallenge> Challenges { get { return _challenges; } }
         public List<ChessMatch> Matches { get { return _chessMatches; } }
-
         public async Task<IUser> WhoseTurn(ulong channel, IUser player)
         {
             var match = await GetMatch(channel, player);
@@ -208,8 +210,19 @@ namespace src
             if(!match.Game.IsValidMove(move))
                 throw new ChessException("Invalid move.");
 
+            var chessMove = new ChessMove { Move = move, MoveDate = DateTime.Now };
+
+            var board = match.Game.GetBoard();
+            for(var column = 0; column < board.Length; column++)
+            {
+                for(var row = 0; row < board[column].Length; row++)
+                {
+                    chessMove.PreviousBoardState[column][row] = board[column][row];
+                }
+            }
+
             match.Game.ApplyMove(move, true);
-            match.History.Add(new ChessMove { Move = move, MoveDate = DateTime.Now });
+            match.History.Add(chessMove);;
 
             var checkMated = match.Game.IsCheckmated(otherPlayer);
             var isOver = checkMated || match.Game.IsStalemated(otherPlayer);
@@ -240,6 +253,36 @@ namespace src
 
             if(_challenges.Contains(challenge))
                 _challenges.Remove(challenge);
+        }
+
+        public async Task Undo(MemoryStream stream, ulong channel, IUser player)
+        {
+            var match = await GetMatch(channel, player);
+
+            if(match == null)
+                throw new ChessException("You are not in a game.");
+
+            var move = match.History.OrderByDescending(x => x.MoveDate).FirstOrDefault();
+
+            if(move == null)
+                throw new ChessException("Nothing to undo.");
+
+            var board = match.Game.GetBoard();
+
+            for(var column = 0; column < move.PreviousBoardState.Length; column++)
+            {
+                for(var row = 0; row < move.PreviousBoardState[column].Length; row++)
+                {
+                    board[column][row] = move.PreviousBoardState[column][row];
+                }
+            }
+            var whoseTurn = match.Game.WhoseTurn == Player.White ? Player.Black : Player.White;
+
+            match.Game = new ChessGame(new GameCreationData { Board = board, WhoseTurn = whoseTurn });
+
+            match.History.Remove(move);
+
+            await WriteBoard(channel, player, stream);
         }
     }    
 }

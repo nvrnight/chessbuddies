@@ -38,12 +38,32 @@ namespace src
             }
         }
     }
-    public class RevertCommand : ModuleBase<SocketCommandContext>
+    public class UndoCommand : ModuleBase<SocketCommandContext>
     {
-        [Command("revert")]
+        private readonly IChessService _chessService;
+
+        public UndoCommand(IChessService chessService)
+        {
+            _chessService = chessService;
+        }
+
+        [Command("undo")]
         public async Task SayAsync()
         {
-            await this.ReplyAsync($"Revert command called.");
+            try
+            {
+                using(var stream = new MemoryStream())
+                {
+                    await _chessService.Undo(stream, Context.Channel.Id, Context.Message.Author);
+
+                    stream.Position = 0;
+                    await Context.Channel.SendFileAsync(stream, "board.png");
+                }
+            }
+            catch(ChessException ex)
+            {
+                await ReplyAsync(ex.Message);
+            }
         }
     }
     public class EndCommand : ModuleBase<SocketCommandContext>
@@ -84,36 +104,6 @@ namespace src
             {
                 await this.ReplyAsync(ex.Message);
             }
-        }
-    }
-    public class ListChallengesCommand : ModuleBase<SocketCommandContext>
-    {
-        private readonly IChessService _chessService;
-
-        public ListChallengesCommand(IChessService chessService)
-        {
-            _chessService = chessService;
-        }
-
-        [Command("listchallenges")]
-        public async Task SayAsync(string message = "")
-        {
-            await this.ReplyAsync(JsonConvert.SerializeObject(_chessService.Challenges));
-        }
-    }
-    public class ListMatchesCommand : ModuleBase<SocketCommandContext>
-    {
-        private readonly IChessService _chessService;
-
-        public ListMatchesCommand(IChessService chessService)
-        {
-            _chessService = chessService;
-        }
-
-        [Command("listmatches")]
-        public async Task SayAsync(string message = "")
-        {
-            await this.ReplyAsync(JsonConvert.SerializeObject(_chessService.Matches));
         }
     }
     public class ChallengeCommand : ModuleBase<SocketCommandContext>
