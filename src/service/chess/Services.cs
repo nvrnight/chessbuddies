@@ -39,7 +39,7 @@ namespace src
         public List<ChessChallenge> Challenges { get { return _challenges; } }
         public List<ChessMatch> Matches { get { return _chessMatches; } }
 
-        private void DrawPiece(IImageProcessingContext<Rgba32> processor, string name, int x, int y)
+        private void DrawImage(IImageProcessingContext<Rgba32> processor, string name, int x, int y)
         {
             var pieceSquare = SixLabors.ImageSharp.Image.Load(_assetService.GetImagePath($"{name}.png"));
             processor.DrawImage(pieceSquare, new Size(50, 50), new Point(x * 50 + 117, y * 50 + 19), new GraphicsOptions());
@@ -56,11 +56,34 @@ namespace src
                 
                 var boardPieces = match.Game.GetBoard();
 
+                var lastMove = match.History.OrderByDescending(x => x.MoveDate).FirstOrDefault();
+
+                Dictionary<int, int> RankToRowMap = new Dictionary<int, int>
+                {
+                    { 1, 7 },
+                    { 2, 6 },
+                    { 3, 5 },
+                    { 4, 4 },
+                    { 5, 3 },
+                    { 6, 2 },
+                    { 7, 1 },
+                    { 8, 0 }
+                };
+
                 board.Mutate(processor => {
                     for(var columnIndex = 0; columnIndex < boardPieces.Length; columnIndex++)
                     {
                         for(var rowIndex = 0; rowIndex < boardPieces[columnIndex].Length; rowIndex++)
                         {
+                            if(
+                                lastMove != null &&
+                                (
+                                    ((int)lastMove.Move.OriginalPosition.File == columnIndex && RankToRowMap[lastMove.Move.OriginalPosition.Rank] == rowIndex) ||
+                                    ((int)lastMove.Move.NewPosition.File == columnIndex && RankToRowMap[lastMove.Move.NewPosition.Rank] == rowIndex)
+                                )
+                            )
+                                DrawImage(processor, "yellow_square", columnIndex, rowIndex);
+
                             var piece = boardPieces[rowIndex][columnIndex];
 
                             if(piece != null)
@@ -72,7 +95,7 @@ namespace src
                                 if(new[] {'r', 'n', 'b', 'q', 'k', 'p'}.Contains(fenCharacter))
                                     prefix = "black";
 
-                                DrawPiece(processor, $"{prefix}_{fenCharacter}", columnIndex, rowIndex);
+                                DrawImage(processor, $"{prefix}_{fenCharacter}", columnIndex, rowIndex);
                             }
                         }
                     }
