@@ -12,7 +12,9 @@ A .NET Core based Discord chess bot
 * **!show**, display the board
 * **!undo**, request the last move be undone
 
-### Installing and running a release.
+### Add [Chess Buddies](https://discordapp.com/oauth2/authorize?&client_id=400489160441462787&scope=bot&permissions=0) to your channel
+
+### Installing and Host your own Chess Bot.
 Pre-requisites: Install .NET Core 2.0.5 Runtime [32-bit](https://www.microsoft.com/net/download/thank-you/dotnet-runtime-2.0.5-windows-x86-installer) or [64-bit](https://www.microsoft.com/net/download/thank-you/dotnet-runtime-2.0.5-windows-x64-installer).
 
 1. Download the current release from the Releases tab
