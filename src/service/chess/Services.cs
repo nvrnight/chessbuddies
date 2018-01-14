@@ -23,22 +23,25 @@ namespace src
         List<ChessMatch> Matches { get; }
         Task<ChessChallenge> Challenge(ulong channel, IUser player1, IUser player2);
         Task<ChessMatch> AcceptChallenge(ulong channel, IUser player);
+        Task<bool> HasChallenge(ulong channel, IUser player);
         Task<ChessMatch> Resign(ulong channel, IUser player);
         Task<bool> PlayerIsInGame(ulong channel, IUser player);
-        int ChallengeTimeout { get; }
+        int ConfirmationsTimeout { get; }
 
-        Task Undo(MemoryStream stream, ulong channel, IUser player);
+        Task Undo(ulong channel, IUser player);
+        Task<UndoRequest> UndoRequest(ulong channel, IUser player);
+        Task<bool> HasUndoRequest(ulong channel, IUser player);
     }
     public class ChessService : IChessService
     {
-        private readonly int _challengeTimeout;
+        private readonly int _confirmationsTimeout;
         private readonly IAssetService _assetService;
-        public ChessService(int challengeTimeout, IAssetService assetService)
+        public ChessService(int confirmationsTimeout, IAssetService assetService)
         {
-            _challengeTimeout = challengeTimeout;
+            _confirmationsTimeout = confirmationsTimeout;
             _assetService = assetService;
         }
-        public int ChallengeTimeout { get { return _challengeTimeout; } }
+        public int ConfirmationsTimeout { get { return _confirmationsTimeout; } }
         private List<ChessMatch> _chessMatches = new List<ChessMatch>();
         private List<ChessChallenge> _challenges = new List<ChessChallenge>();
         public List<ChessChallenge> Challenges { get { return _challenges; } }
@@ -222,7 +225,8 @@ namespace src
             }
 
             match.Game.ApplyMove(move, true);
-            match.History.Add(chessMove);;
+            match.History.Add(chessMove);
+            match.UndoRequest = null;
 
             var checkMated = match.Game.IsCheckmated(otherPlayer);
             var isOver = checkMated || match.Game.IsStalemated(otherPlayer);
@@ -247,15 +251,48 @@ namespace src
             return await Task.FromResult<bool>(_chessMatches.Any(x => x.Channel == channel && x.Players.Contains(player)));
         }
 
+        private async void RemoveUndoRequest(ChessMatch match)
+        {
+            await Task.Delay(_confirmationsTimeout);
+            match.UndoRequest = null;
+        }
+
         private async void RemoveChallenge(ChessChallenge challenge)
         {
-            await Task.Delay(_challengeTimeout);
+            await Task.Delay(_confirmationsTimeout);
 
             if(_challenges.Contains(challenge))
                 _challenges.Remove(challenge);
         }
 
-        public async Task Undo(MemoryStream stream, ulong channel, IUser player)
+        public async Task<UndoRequest> UndoRequest(ulong channel, IUser player)
+        {
+            var match = await GetMatch(channel, player);
+
+            if(match == null)
+                throw new ChessException("You are not in a game.");
+            
+            if(!match.History.Any())
+                throw new ChessException("Nothing to undo.");
+
+            var userWhoseTurn = match.Game.WhoseTurn == Player.White ? match.Challenged : match.Challenger;
+
+            if(userWhoseTurn != player)
+                throw new ChessException("You can't undo another players turn.");
+            
+            if(match.UndoRequest != null)
+                throw new ChessException("Undo request is already in process.");
+            
+            var undoRequest = new UndoRequest { CreatedDate = DateTime.UtcNow, CreatedBy = player };
+
+            match.UndoRequest = undoRequest;
+
+            RemoveUndoRequest(match);
+
+            return await Task.FromResult(undoRequest);
+        }
+
+        public async Task Undo(ulong channel, IUser player)
         {
             var match = await GetMatch(channel, player);
 
@@ -281,8 +318,26 @@ namespace src
             match.Game = new ChessGame(new GameCreationData { Board = board, WhoseTurn = whoseTurn });
 
             match.History.Remove(move);
+            match.UndoRequest = null;
+        }
 
-            await WriteBoard(channel, player, stream);
+        public async Task<bool> HasChallenge(ulong channel, IUser player)
+        {
+            return await Task.FromResult(_challenges.Any(x => x.Channel == channel && x.Challenged == player));
+        }
+
+        public async Task<bool> HasUndoRequest(ulong channel, IUser player)
+        {
+            var match = await GetMatch(channel, player);
+
+            if(match.UndoRequest != null)
+            {
+                var playerWhoCanAccept = match.UndoRequest.CreatedBy == match.Challenger ? match.Challenged : match.Challenger;
+
+                return await Task.FromResult(playerWhoCanAccept == player);
+            }
+
+            return await Task.FromResult(false);
         }
     }    
 }

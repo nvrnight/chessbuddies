@@ -52,18 +52,24 @@ namespace src
         {
             try
             {
-                using(var stream = new MemoryStream())
-                {
-                    await _chessService.Undo(stream, Context.Channel.Id, Context.Message.Author);
+                var undoRequest = await _chessService.UndoRequest(Context.Channel.Id, Context.Message.Author);
 
-                    stream.Position = 0;
-                    await Context.Channel.SendFileAsync(stream, "board.png");
-                }
+                UndoTimeout(undoRequest);
+
+                await ReplyAsync($"{Context.Message.Author.Mention} is wanting to undo the previous move. Do !accept to accept.");
             }
             catch(ChessException ex)
             {
                 await ReplyAsync(ex.Message);
             }
+        }
+
+        private async void UndoTimeout(UndoRequest undoRequest)
+        {
+            await Task.Delay(_chessService.ConfirmationsTimeout - 900);
+
+            if(undoRequest != null)
+                await this.ReplyAsync($"Undo request timed out.");
         }
     }
     public class EndCommand : ModuleBase<SocketCommandContext>
@@ -88,16 +94,30 @@ namespace src
         {
             try
             {
-                var match = await _chessService.AcceptChallenge(Context.Channel.Id, this.Context.Message.Author);
-
-                await this.ReplyAsync($"Match has started between {match.Challenger.Mention} and {match.Challenged.Mention}.");
-
-                using(var stream = new MemoryStream())
+                var writeBoard = false;
+                if(await _chessService.HasChallenge(Context.Channel.Id, Context.Message.Author))
                 {
-                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author, stream);
+                    var match = await _chessService.AcceptChallenge(Context.Channel.Id, this.Context.Message.Author);
 
-                    stream.Position = 0;
-                    await this.Context.Channel.SendFileAsync(stream, "board.png");
+                    await this.ReplyAsync($"Match has started between {match.Challenger.Mention} and {match.Challenged.Mention}.");
+
+                    writeBoard = true;
+                } else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author))
+                {
+                    await _chessService.Undo(Context.Channel.Id, Context.Message.Author);
+
+                    writeBoard = true;
+                }
+
+                if(writeBoard)
+                {
+                    using(var stream = new MemoryStream())
+                    {
+                        await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author, stream);
+
+                        stream.Position = 0;
+                        await this.Context.Channel.SendFileAsync(stream, "board.png");
+                    }
                 }
             }
             catch(ChessException ex)
@@ -145,7 +165,7 @@ namespace src
         }
         private async void ChallengeTimeout(ChessChallenge challenge)
         {
-            await Task.Delay(_chessService.ChallengeTimeout);
+            await Task.Delay(_chessService.ConfirmationsTimeout);
 
             if(!_chessService.Matches.Any(x => x.Channel == challenge.Channel && x.Players.Contains(challenge.Challenged) && x.Players.Contains(challenge.Challenger)))
                 await this.ReplyAsync($"Challenge timed out for {challenge.Challenger.Mention} challenging {challenge.Challenged.Mention}");

@@ -36,7 +36,7 @@ namespace src
             string token = config["token"];
 
             int timeout = 30000;
-            int.TryParse(config["challengeTimeout"], out timeout);
+            int.TryParse(config["confirmationsTimeout"], out timeout);
 
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()

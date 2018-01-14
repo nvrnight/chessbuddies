@@ -18,9 +18,15 @@ namespace src
         public Move Move {get; set;}
         public DateTime MoveDate {get; set;}
     }
+    public class UndoRequest
+    {
+        public DateTime CreatedDate {get; set;}
+        public IUser CreatedBy {get; set;}
+    }
     public class ChessMatch
     {
         public List<ChessMove> History {get; set;} = new List<ChessMove>();
+        public UndoRequest UndoRequest {get; set;}
         public ChessGame Game {get; set;}
         [JsonIgnore]
         public IUser Challenger {get; set;}
