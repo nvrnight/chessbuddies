@@ -1,18 +1,18 @@
 # Chess Buddies
 A .NET Core based Discord chess bot
 
-Instructions:
+## Instructions
 
-Commands(!name, Example, Description):
-!? or !help
-!challenge, !challenge @SomeDiscordUser, challenge another player to a match
-!accept, accept a match challenge or undo request
-!move, !move a2a4 or !a2a4, move y
-!resign, resign the match
-!show, display the board
-!undo, request the last move be undone
+### Discord Commands(!name, Example, Description):
+* !? or !help
+* **!challenge**, **!challenge @SomeDiscordUser**, challenge another player to a match
+* **!accept**, accept a match challenge or undo request
+* **!move**, **!move a2a4** or **!a2a4**, move your chess piece
+* **!resign**, resign the match
+* **!show**, display the board
+* **!undo**, request the last move be undone
 
-Installing and running a release.
+### Installing and running a release.
 Pre-requisites: Install .NET Core 2.0.5 Runtime [32-bit](https://www.microsoft.com/net/download/thank-you/dotnet-runtime-2.0.5-windows-x86-installer) or [64-bit](https://www.microsoft.com/net/download/thank-you/dotnet-runtime-2.0.5-windows-x64-installer).
 
 1. Download the current release from the Releases tab
