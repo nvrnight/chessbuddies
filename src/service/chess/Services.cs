@@ -115,7 +115,7 @@ namespace src
                                 if(new[] {'r', 'n', 'b', 'q', 'k', 'p'}.Contains(fenCharacter))
                                     prefix = "black";
 
-                                DrawImage(processor, $"{prefix}_{fenCharacter}", columnIndex, rowIndex);
+                                DrawImage(processor, $"{prefix}_{fenCharacter.ToString().ToLower()}", columnIndex, rowIndex);
                             }
                         }
                     }
