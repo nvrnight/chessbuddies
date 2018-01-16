@@ -118,7 +118,7 @@ namespace src
                             var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
 
                             if(moveResult.IsOver) {
-                                var overMessage = "The match is over.";
+                                var overMessage = "Checkmate!";
                                 if(moveResult.Winner != null)
                                     overMessage += $" {moveResult.Winner.Mention} has won the match.";
 
