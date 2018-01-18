@@ -86,12 +86,15 @@ namespace src
                     await this.ReplyAsync($"Match has started between {match.Challenger.Mention} and {match.Challenged.Mention}.");
 
                     writeBoard = true;
-                } else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author))
+                }
+                else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author))
                 {
                     await _chessService.Undo(Context.Channel.Id, Context.Message.Author);
 
                     writeBoard = true;
                 }
+                else
+                    throw new ChessException("Nothing to accept.");
 
                 if(writeBoard)
                 {

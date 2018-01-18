@@ -109,48 +109,54 @@ namespace src
             if (!result.IsSuccess) {
                 Func<string, Task> sendError = async (e) => { await context.Channel.SendMessageAsync(e); };
 
-                if(result.ErrorReason == "Unknown command." && await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author))
+                if(result.ErrorReason == "Unknown command.")
                 {
-                    try
+                    if(await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author))
                     {
-                        using(var stream = new MemoryStream())
+                        try
                         {
-                            var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
+                            using(var stream = new MemoryStream())
+                            {
+                                var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
 
-                            if(moveResult.IsOver) {
-                                var overMessage = "The match is over.";
-                                if(moveResult.Winner != null)
-                                    overMessage += $" {moveResult.Winner.Mention} has won the match.";
+                                if(moveResult.IsOver) {
+                                    var overMessage = "The match is over.";
+                                    if(moveResult.Winner != null)
+                                        overMessage += $" {moveResult.Winner.Mention} has won the match.";
 
-                                await context.Channel.SendMessageAsync(overMessage);
-                            } else {
-                                var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author);
+                                    await context.Channel.SendMessageAsync(overMessage);
+                                } else {
+                                    var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author);
 
-                                var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
+                                    var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
 
-                                if(moveResult.IsCheck)
-                                    yourMoveMessage += " Check!";
+                                    if(moveResult.IsCheck)
+                                        yourMoveMessage += " Check!";
 
-                                await context.Channel.SendMessageAsync(yourMoveMessage);
+                                    await context.Channel.SendMessageAsync(yourMoveMessage);
+                                }
+
+                                stream.Position = 0;
+                                await context.Channel.SendFileAsync(stream, "board.png");
                             }
-
-                            stream.Position = 0;
-                            await context.Channel.SendFileAsync(stream, "board.png");
+                        }
+                        catch(ChessException ex)
+                        {
+                            await sendError(ex.Message);
+                        }
+                        catch(Exception ex)
+                        {
+                            Console.WriteLine(ex.ToString());
+                            await sendError("An Unexpected error occurred");
                         }
                     }
-                    catch(ChessException ex)
-                    {
-                        await sendError(ex.Message);
-                    }
-                    catch(Exception ex)
-                    {
-                        Console.WriteLine(ex.ToString());
-                        await sendError("An Unexpected error occurred");
-                    }
+                    else
+                        await sendError(result.ErrorReason);
                 }
                 else
                 {
-                    await sendError(result.ErrorReason);
+                    Console.WriteLine(result.Error.Value.ToString());
+                    await sendError("An Unexpected error occurred");
                 }
             }
         }

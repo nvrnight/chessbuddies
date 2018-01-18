@@ -338,7 +338,7 @@ namespace src
         {
             var match = await GetMatch(channel, player);
 
-            if(match.UndoRequest != null)
+            if(match?.UndoRequest != null)
             {
                 var playerWhoCanAccept = match.UndoRequest.CreatedBy == match.Challenger ? match.Challenged : match.Challenger;
 
