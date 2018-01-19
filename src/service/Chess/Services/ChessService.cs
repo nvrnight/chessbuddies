@@ -1,3 +1,4 @@
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -6,12 +7,12 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using ChessDotNet;
 using Discord;
-using Discord.WebSocket;
-using Newtonsoft.Json;
+using ChessBuddies.Chess.Exceptions;
+using ChessBuddies.Chess.Models;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
 
-namespace src
+namespace ChessBuddies.Services
 {
     public interface IChessService
     {

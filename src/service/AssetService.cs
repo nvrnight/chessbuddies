@@ -1,6 +1,6 @@
 using System.IO;
 
-namespace src
+namespace ChessBuddies
 {
     public interface IAssetService
     {

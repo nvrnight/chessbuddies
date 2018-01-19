@@ -1,7 +1,7 @@
 using System.Threading.Tasks;
 using Discord.Commands;
 
-namespace src
+namespace ChessBuddies.Commands
 {
     public class HelpQuestionMarkCommand : ModuleBase<SocketCommandContext>
     {

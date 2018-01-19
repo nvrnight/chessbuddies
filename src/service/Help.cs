@@ -2,7 +2,7 @@ using System.Linq;
 using System.Reflection;
 using Discord.Commands;
 
-namespace src
+namespace ChessBuddies
 {
     public class Help
     {

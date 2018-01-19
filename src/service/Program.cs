@@ -1,18 +1,17 @@
 ﻿using System;
+using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
+using ChessBuddies.Services;
+using ChessDotNet;
 using Discord;
 using Discord.Commands;
 using Discord.WebSocket;
-using System.Linq;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using System.IO;
-using System.Text.RegularExpressions;
-using Newtonsoft.Json;
-using ChessDotNet;
+using Microsoft.Extensions.DependencyInjection;
+using ChessBuddies.Chess.Exceptions;
 
-namespace src
+namespace ChessBuddies
 {
     class Program
     {

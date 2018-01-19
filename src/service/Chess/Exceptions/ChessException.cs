@@ -1,6 +1,6 @@
 using System;
 
-namespace src
+namespace ChessBuddies.Chess.Exceptions
 {
     public class ChessException : Exception
     {
