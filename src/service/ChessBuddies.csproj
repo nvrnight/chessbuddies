@@ -11,4 +11,8 @@
     <PackageReference Include="SixLabors.ImageSharp" Version="1.0.0-beta0002" />
     <PackageReference Include="SixLabors.ImageSharp.Drawing" Version="1.0.0-beta0002" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="Always" />
+    <None Include="assets\**\*" CopyToOutputDirectory="Always" />
+  </ItemGroup>
 </Project>
