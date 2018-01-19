@@ -15,6 +15,7 @@ namespace ChessBuddies
 {
     class Program
     {
+        public static DateTime? ShutdownTime { get; set; }
         private CommandService _commands;
         private DiscordSocketClient _client;
         private IServiceProvider _services;
@@ -34,6 +35,9 @@ namespace ChessBuddies
 
             string token = config["token"];
 
+            var adminUsernamesCsv = config["admins"];
+            var adminUsernames = adminUsernamesCsv?.Split(',') ?? new string[] {};
+            
             int timeout;
             if(!int.TryParse(config["confirmationsTimeout"], out timeout))
                 timeout = 30000;
@@ -41,6 +45,7 @@ namespace ChessBuddies
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
                 .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout, s.GetService<IAssetService>()))
+                .AddSingleton<IAuthorizationService, AuthorizationService>(s => new AuthorizationService(adminUsernames))
                 .AddSingleton<ChessGame, ChessGame>()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
@@ -53,8 +58,13 @@ namespace ChessBuddies
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
 
-            // Block this task until the program is closed.
-            await Task.Delay(-1);
+            while(ShutdownTime == null || ShutdownTime > DateTime.UtcNow) {
+                
+            }
+
+            await _client.SetGameAsync(null);
+            await _client.StopAsync();
+            await _client.LogoutAsync();
 		}
 
         private Task Log(LogMessage message)

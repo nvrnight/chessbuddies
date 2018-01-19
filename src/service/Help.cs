@@ -1,18 +1,23 @@
 using System.Linq;
 using System.Reflection;
+using ChessBuddies.Commands;
 using Discord.Commands;
 
 namespace ChessBuddies
 {
     public class Help
     {
-        public static string GetCommandsHelpText()
+        public static string GetCommandsHelpText(bool isAdmin)
         {
-            var types = Assembly.GetExecutingAssembly().GetTypes().Where(x => x.IsSubclassOf(typeof(ModuleBase<SocketCommandContext>)));
+            var types = Assembly.GetExecutingAssembly().GetTypes().Where(x =>
+                !x.IsAbstract &&
+                (
+                    (isAdmin || !x.IsSubclassOf(typeof(AdminCommand))) &&
+                    x.IsSubclassOf(typeof(ModuleBase<SocketCommandContext>))
+                )
+            );
 
-            var methods = types.Select(x => x.GetMethods().Where(m => m.Name == "SayAsync").Single());
-
-            var attributes = methods.Select(m => m.GetCustomAttributes<CommandAttribute>(true).Single());
+            var attributes = types.Select(x => x.GetMethod("SayAsync")).Select(m => m.GetCustomAttribute<CommandAttribute>(true));
 
             return "List of known commands: " + string.Join(", ", attributes.Select(x => x.Text));
         }

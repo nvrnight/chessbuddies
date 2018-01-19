@@ -16,6 +16,7 @@ namespace ChessBuddies.Services
 {
     public interface IChessService
     {
+        Task<ChessServiceStatus> GetStatus();
         Task<IUser> WhoseTurn(ulong channel, IUser player);
         Task<ChessMatch> GetMatch(ulong channel, IUser player);
         Task WriteBoard(ulong channel, IUser player, Stream stream);
@@ -47,6 +48,13 @@ namespace ChessBuddies.Services
         private List<ChessChallenge> _challenges = new List<ChessChallenge>();
         public List<ChessChallenge> Challenges { get { return _challenges; } }
         public List<ChessMatch> Matches { get { return _chessMatches; } }
+        public async Task<ChessServiceStatus> GetStatus()
+        {
+            return await Task.FromResult(new ChessServiceStatus {
+                ChallengeRequestsInProgress = _challenges.Count(),
+                MatchesInProgress = _chessMatches.Count()
+            });
+        }
         public async Task<IUser> WhoseTurn(ulong channel, IUser player)
         {
             var match = await GetMatch(channel, player);
