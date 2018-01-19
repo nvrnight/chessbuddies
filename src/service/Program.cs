@@ -34,8 +34,9 @@ namespace ChessBuddies
 
             string token = config["token"];
 
-            int timeout = 30000;
-            int.TryParse(config["confirmationsTimeout"], out timeout);
+            int timeout;
+            if(!int.TryParse(config["confirmationsTimeout"], out timeout))
+                timeout = 30000;
 
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
@@ -89,6 +90,49 @@ namespace ChessBuddies
             await _commands.AddModulesAsync(Assembly.GetEntryAssembly());
         }
 
+        private async Task HandleMoveLogic(SocketCommandContext context, SocketMessage message)
+        {
+            try
+            {
+                using(var stream = new MemoryStream())
+                {
+                    var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
+
+                    if(moveResult.IsOver)
+                    {
+                        var overMessage = "Checkmate!";
+                        if(moveResult.Winner != null)
+                            overMessage += $" {moveResult.Winner.Mention} has won the match.";
+
+                            await context.Channel.SendMessageAsync(overMessage);
+                    }
+                    else
+                    {
+                        var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author);
+
+                        var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
+
+                        if(moveResult.IsCheck)
+                            yourMoveMessage += " Check!";
+
+                        await context.Channel.SendMessageAsync(yourMoveMessage);
+                    }
+
+                    stream.Position = 0;
+                    await context.Channel.SendFileAsync(stream, "board.png");
+                }
+            }
+            catch(ChessException ex)
+            {
+                await context.Channel.SendMessageAsync(ex.Message);
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+                await context.Channel.SendMessageAsync("An Unexpected error occurred");
+            }
+        }
+
         private async Task HandleCommandAsync(SocketMessage messageParam)
         {
             // Don't process the command if it was a System Message
@@ -105,49 +149,18 @@ namespace ChessBuddies
 
             var result = await _commands.ExecuteAsync(context, argPos, _services);
 
-            if (!result.IsSuccess) {
-                Func<string, Task> sendError = async (e) => { await context.Channel.SendMessageAsync(e); };
+            if (!result.IsSuccess)
+            {
+                async Task sendError(string e)
+                {
+                    await context.Channel.SendMessageAsync(e);
+                }
 
                 if(result.ErrorReason == "Unknown command.")
                 {
                     if(await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author))
                     {
-                        try
-                        {
-                            using(var stream = new MemoryStream())
-                            {
-                                var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
-
-                            if(moveResult.IsOver) {
-                                var overMessage = "Checkmate!";
-                                if(moveResult.Winner != null)
-                                    overMessage += $" {moveResult.Winner.Mention} has won the match.";
-
-                                    await context.Channel.SendMessageAsync(overMessage);
-                                } else {
-                                    var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author);
-
-                                    var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
-
-                                    if(moveResult.IsCheck)
-                                        yourMoveMessage += " Check!";
-
-                                    await context.Channel.SendMessageAsync(yourMoveMessage);
-                                }
-
-                                stream.Position = 0;
-                                await context.Channel.SendFileAsync(stream, "board.png");
-                            }
-                        }
-                        catch(ChessException ex)
-                        {
-                            await sendError(ex.Message);
-                        }
-                        catch(Exception ex)
-                        {
-                            Console.WriteLine(ex.ToString());
-                            await sendError("An Unexpected error occurred");
-                        }
+                        await HandleMoveLogic(context, message);
                     }
                     else
                         await sendError(result.ErrorReason);

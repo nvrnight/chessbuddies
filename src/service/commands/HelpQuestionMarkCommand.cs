@@ -10,7 +10,7 @@ namespace ChessBuddies.Commands
         public async Task SayAsync()
         {
 
-            await this.ReplyAsync(Help.CommandsHelpText);
+            await this.ReplyAsync(Help.GetCommandsHelpText());
         }
     }
 
@@ -21,7 +21,7 @@ namespace ChessBuddies.Commands
         public async Task SayAsync()
         {
 
-            await this.ReplyAsync(Help.CommandsHelpText);
+            await this.ReplyAsync(Help.GetCommandsHelpText());
         }
     }
 }
