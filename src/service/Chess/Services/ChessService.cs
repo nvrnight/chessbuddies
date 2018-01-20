@@ -191,7 +191,7 @@ namespace ChessBuddies.Services
         {
             var moveInput = rawMove.Replace(" ", "").ToUpper();
 
-            if(!Regex.IsMatch(moveInput, "[A-H][1-8][A-H][1-8]"))
+            if(!Regex.IsMatch(moveInput, "^[A-H][1-8][A-H][1-8][Q|N|B|R]?$"))
                 throw new ChessException("Error parsing move. Example move: a2a4");
 
             var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
@@ -209,6 +209,9 @@ namespace ChessBuddies.Services
             var sourceY = moveInput[1].ToString();
             var destX = moveInput[2].ToString();
             var destY = moveInput[3].ToString();
+
+            char? promotionChar = moveInput.Length > 4 ? moveInput[4].ToString().ToLower()[0] : 'q';
+
             var positionEnumValues = (IEnumerable<ChessDotNet.File>)Enum.GetValues(typeof(ChessDotNet.File));
 
             var sourcePositionX = positionEnumValues.Single(x => x.ToString("g") == sourceX);
@@ -217,7 +220,7 @@ namespace ChessBuddies.Services
             var originalPosition = new ChessDotNet.Position(sourcePositionX, int.Parse(sourceY));
             var destPosition = new ChessDotNet.Position(destPositionX, int.Parse(destY));
 
-            var move = new Move(originalPosition, destPosition, whoseTurn);
+            var move = new Move(originalPosition, destPosition, whoseTurn, promotionChar);
 
             if(!match.Game.IsValidMove(move))
                 throw new ChessException("Invalid move.");
