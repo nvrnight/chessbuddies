@@ -30,9 +30,7 @@ namespace ChessBuddies.Chess.Commands
                     await this.Context.Channel.SendFileAsync(stream, "board.png");
 
                     if(result.IsOver) {
-                        var overMessage = "The match is over.";
-                        if(result.Winner != null)
-                            overMessage += $" {result.Winner.Mention} has won the match.";
+                        var overMessage = result.Winner != null ? $"Checkmate! {result.Winner.Mention} has won the match." : "Stalemate!";
 
                         await this.ReplyAsync(overMessage);
                     } else {

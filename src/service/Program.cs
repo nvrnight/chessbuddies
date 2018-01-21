@@ -110,11 +110,9 @@ namespace ChessBuddies
 
                     if(moveResult.IsOver)
                     {
-                        var overMessage = "Checkmate!";
-                        if(moveResult.Winner != null)
-                            overMessage += $" {moveResult.Winner.Mention} has won the match.";
+                        var overMessage = moveResult.Winner != null ? $"Checkmate! {moveResult.Winner.Mention} has won the match." : "Stalemate!";
 
-                            await context.Channel.SendMessageAsync(overMessage);
+                        await context.Channel.SendMessageAsync(overMessage);
                     }
                     else
                     {
