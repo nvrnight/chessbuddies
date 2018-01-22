@@ -58,14 +58,21 @@ namespace ChessBuddies
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
 
-            while(ShutdownTime == null || ShutdownTime > DateTime.UtcNow) {
-                
-            }
+            await RunUntilShutdown();
 
             await _client.SetGameAsync(null);
             await _client.StopAsync();
             await _client.LogoutAsync();
 		}
+
+        private async Task RunUntilShutdown()
+        {
+            await Task.Run(() => {
+                while(ShutdownTime == null || ShutdownTime > DateTime.UtcNow) {
+                
+                }
+            });
+        }
 
         private Task Log(LogMessage message)
 		{
