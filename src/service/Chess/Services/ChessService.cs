@@ -11,6 +11,7 @@ using ChessBuddies.Chess.Exceptions;
 using ChessBuddies.Chess.Models;
 using SixLabors.ImageSharp;
 using SixLabors.Primitives;
+using ChessDotNet.Pieces;
 
 namespace ChessBuddies.Services
 {
@@ -219,6 +220,11 @@ namespace ChessBuddies.Services
 
             var originalPosition = new ChessDotNet.Position(sourcePositionX, int.Parse(sourceY));
             var destPosition = new ChessDotNet.Position(destPositionX, int.Parse(destY));
+
+            var piece = match.Game.GetPieceAt(originalPosition);
+
+            if(piece != null && !(piece is Pawn))
+                promotionChar = null;
 
             var move = new Move(originalPosition, destPosition, whoseTurn, promotionChar);
 
