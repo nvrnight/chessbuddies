@@ -22,17 +22,17 @@ namespace ChessBuddies.Chess.Commands
             try
             {
                 var writeBoard = false;
-                if(await _chessService.HasChallenge(Context.Channel.Id, Context.Message.Author))
+                if(await _chessService.HasChallenge(Context.Channel.Id, Context.Message.Author.Id))
                 {
-                    var match = await _chessService.AcceptChallenge(Context.Channel.Id, this.Context.Message.Author);
+                    var match = await _chessService.AcceptChallenge(Context.Channel.Id, this.Context.Message.Author.Id);
 
-                    await this.ReplyAsync($"Match has started between {match.Challenger.Mention} and {match.Challenged.Mention}.");
+                    await this.ReplyAsync($"Match has started between {match.Challenger.Mention()} and {match.Challenged.Mention()}.");
 
                     writeBoard = true;
                 }
-                else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author))
+                else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author.Id))
                 {
-                    await _chessService.Undo(Context.Channel.Id, Context.Message.Author);
+                    await _chessService.Undo(Context.Channel.Id, Context.Message.Author.Id);
 
                     writeBoard = true;
                 }
@@ -43,7 +43,7 @@ namespace ChessBuddies.Chess.Commands
                 {
                     using(var stream = new MemoryStream())
                     {
-                        await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author, stream);
+                        await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
 
                         stream.Position = 0;
                         await this.Context.Channel.SendFileAsync(stream, "board.png");

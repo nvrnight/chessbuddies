@@ -23,7 +23,7 @@ namespace ChessBuddies.Chess.Commands
             {
                 try
                 {
-                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author, stream);
+                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
 
                     stream.Position = 0;
                     await this.Context.Channel.SendFileAsync(stream, "board.png");

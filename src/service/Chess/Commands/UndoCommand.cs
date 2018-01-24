@@ -20,7 +20,7 @@ namespace ChessBuddies.Chess.Commands
         {
             try
             {
-                var undoRequest = await _chessService.UndoRequest(Context.Channel.Id, Context.Message.Author, async x => {
+                var undoRequest = await _chessService.UndoRequest(Context.Channel.Id, Context.Message.Author.Id, async x => {
                     await ReplyAsync($"Undo request timed out.");
                 });
 

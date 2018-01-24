@@ -9,15 +9,12 @@ namespace ChessBuddies.Chess.Models
     {
         public List<ChessMove> History {get; set;} = new List<ChessMove>();
         public UndoRequest UndoRequest {get; set;}
+        [JsonIgnore]
         public ChessGame Game {get; set;}
+        public ulong Challenger {get; set;}
+        public ulong Challenged {get; set;}
         [JsonIgnore]
-        public IUser Challenger {get; set;}
-        [JsonIgnore]
-        public IUser Challenged {get; set;}
-        [JsonIgnore]
-        public IUser[] Players { get { return new[] { Challenger, Challenged }; } }
-        public ulong ChallengerId {get { return Challenger.Id; } }
-        public ulong ChallengedId {get { return Challenger.Id; } }
+        public ulong[] Players { get { return new[] { Challenger, Challenged }; } }
         public ulong Channel {get; set;}
     }
 }

@@ -6,12 +6,8 @@ namespace ChessBuddies.Chess.Models
 {
     public class ChessChallenge
     {
-        [JsonIgnore]
-        public IUser Challenger {get; set;}
-        [JsonIgnore]
-        public IUser Challenged {get; set;}
-        public ulong ChallengerId { get { return Challenger.Id; } }
-        public ulong ChallengedId { get { return Challenger.Id; } }
+        public ulong Challenger {get; set;}
+        public ulong Challenged {get; set;}
         public ulong Channel {get; set;}
         public DateTime ChallengeDate {get; set;}
     }

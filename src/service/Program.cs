@@ -10,12 +10,16 @@ using Discord.WebSocket;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ChessBuddies.Chess.Exceptions;
+using System.Threading;
+using Newtonsoft.Json;
+using ChessBuddies.Chess.Models;
+using System.Collections.Generic;
 
 namespace ChessBuddies
 {
     class Program
     {
-        public static DateTime? ShutdownTime { get; set; }
+        public static AutoResetEvent ShutdownEvent  { get; set; } = new AutoResetEvent(false);
         private CommandService _commands;
         private DiscordSocketClient _client;
         private IServiceProvider _services;
@@ -58,21 +62,25 @@ namespace ChessBuddies
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
 
-            await RunUntilShutdown();
+            var stateFilePath = Path.Combine(Directory.GetCurrentDirectory(), "state.json");
+
+            
+            _client.Ready += async () => {
+                if(System.IO.File.Exists(stateFilePath))
+                {
+                    var deserializedMatches = JsonConvert.DeserializeObject<List<ChessMatch>>(System.IO.File.ReadAllText(stateFilePath));
+                    await _chessService.LoadState(deserializedMatches, _client);
+                }
+            };
+
+            ShutdownEvent.WaitOne();
+
+            System.IO.File.WriteAllText(stateFilePath, JsonConvert.SerializeObject(_chessService.Matches));
 
             await _client.SetGameAsync(null);
             await _client.StopAsync();
             await _client.LogoutAsync();
 		}
-
-        private async Task RunUntilShutdown()
-        {
-            await Task.Run(() => {
-                while(ShutdownTime == null || ShutdownTime > DateTime.UtcNow) {
-                
-                }
-            });
-        }
 
         private Task Log(LogMessage message)
 		{
@@ -113,19 +121,19 @@ namespace ChessBuddies
             {
                 using(var stream = new MemoryStream())
                 {
-                    var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author, message.Content.Substring(1, message.Content.Length - 1));
+                    var moveResult = await _chessService.Move(stream, context.Channel.Id, context.Message.Author.Id, message.Content.Substring(1, message.Content.Length - 1));
 
                     if(moveResult.IsOver)
                     {
-                        var overMessage = moveResult.Winner != null ? $"Checkmate! {moveResult.Winner.Mention} has won the match." : "Stalemate!";
+                        var overMessage = moveResult.Winner != null ? $"Checkmate! {moveResult.Winner.Value.Mention()} has won the match." : "Stalemate!";
 
                         await context.Channel.SendMessageAsync(overMessage);
                     }
                     else
                     {
-                        var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author);
+                        var nextPlayer = await _chessService.WhoseTurn(context.Channel.Id, context.Message.Author.Id);
 
-                        var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
+                        var yourMoveMessage = $"Your move {nextPlayer.Mention()}.";
 
                         if(moveResult.IsCheck)
                             yourMoveMessage += " Check!";
@@ -153,6 +161,7 @@ namespace ChessBuddies
             // Don't process the command if it was a System Message
             var message = messageParam as SocketUserMessage;
             if (message == null) return;
+            Console.WriteLine(message);
             // Create a number to track where the prefix ends and the command begins
             int argPos = 0;
             // Determine if the message is a command, based on if it starts with '!' or a mention prefix
@@ -173,7 +182,7 @@ namespace ChessBuddies
 
                 if(result.ErrorReason == "Unknown command.")
                 {
-                    if(await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author))
+                    if(await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author.Id))
                     {
                         await HandleMoveLogic(context, message);
                     }

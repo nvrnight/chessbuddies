@@ -34,8 +34,8 @@ namespace ChessBuddies.Chess.Commands
             {
                 var user = await Context.Channel.GetUserAsync(ulong.Parse(matches[0].Groups[1].Value));
 
-                await _chessService.Challenge(Context.Channel.Id, this.Context.Message.Author, user, async x => {
-                    await this.ReplyAsync($"Challenge timed out for {x.Challenger.Mention} challenging {x.Challenged.Mention}");
+                await _chessService.Challenge(Context.Channel.Id, this.Context.Message.Author.Id, user.Id, async x => {
+                    await this.ReplyAsync($"Challenge timed out for {x.Challenger.Mention()} challenging {x.Challenged.Mention()}");
                 });
 
                 await this.ReplyAsync(this.Context.Message.Author.Mention + $" is challenging {user.Mention}.");

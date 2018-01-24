@@ -22,21 +22,21 @@ namespace ChessBuddies.Chess.Commands
             {
                 using(var stream = new MemoryStream())
                 {
-                    var result = await _chessService.Move(stream, Context.Channel.Id, Context.Message.Author, message);
+                    var result = await _chessService.Move(stream, Context.Channel.Id, Context.Message.Author.Id, message);
 
-                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author, stream);
+                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
 
                     stream.Position = 0;
                     await this.Context.Channel.SendFileAsync(stream, "board.png");
 
                     if(result.IsOver) {
-                        var overMessage = result.Winner != null ? $"Checkmate! {result.Winner.Mention} has won the match." : "Stalemate!";
+                        var overMessage = result.Winner != null ? $"Checkmate! {result.Winner.Value.Mention()} has won the match." : "Stalemate!";
 
                         await this.ReplyAsync(overMessage);
                     } else {
-                        var nextPlayer = await _chessService.WhoseTurn(Context.Channel.Id, Context.Message.Author);
+                        var nextPlayer = await _chessService.WhoseTurn(Context.Channel.Id, Context.Message.Author.Id);
 
-                        var yourMoveMessage = $"Your move {nextPlayer.Mention}.";
+                        var yourMoveMessage = $"Your move {nextPlayer.Mention()}.";
 
                         if(result.IsCheck)
                             yourMoveMessage += " Check!";

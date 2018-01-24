@@ -19,11 +19,11 @@ namespace ChessBuddies.Chess.Commands
         {
             try
             {
-                var match = await _chessService.Resign(Context.Channel.Id, this.Context.Message.Author);
+                var match = await _chessService.Resign(Context.Channel.Id, this.Context.Message.Author.Id);
 
-                var winner = match.Challenger == this.Context.Message.Author ? match.Challenged : match.Challenger;
+                var winner = match.Challenger == this.Context.Message.Author.Id ? match.Challenged : match.Challenger;
 
-                await this.ReplyAsync($"{this.Context.Message.Author.Mention} has resigned the match. {winner.Mention} has won the game.");
+                await this.ReplyAsync($"{this.Context.Message.Author.Mention} has resigned the match. {winner.Mention()} has won the game.");
             }
             catch(ChessException ex)
             {

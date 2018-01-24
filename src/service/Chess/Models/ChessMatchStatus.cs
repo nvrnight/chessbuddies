@@ -6,6 +6,6 @@ namespace ChessBuddies.Chess.Models
     {
         public bool IsOver {get; set;}
         public bool IsCheck {get; set;}
-        public IUser Winner {get; set;}
+        public ulong? Winner {get; set;}
     }
 }
