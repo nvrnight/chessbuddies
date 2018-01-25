@@ -18,37 +18,39 @@ namespace ChessBuddies.Chess.Commands
         [Command("move")]
         public async Task SayAsync(string message)
         {
-            try
-            {
-                using(var stream = new MemoryStream())
+            await Task.Run(async () => {
+                try
                 {
-                    var result = await _chessService.Move(stream, Context.Channel.Id, Context.Message.Author.Id, message);
+                    using(var stream = new MemoryStream())
+                    {
+                        var result = await _chessService.Move(stream, Context.Channel.Id, Context.Message.Author.Id, message);
 
-                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
+                        await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
 
-                    stream.Position = 0;
-                    await this.Context.Channel.SendFileAsync(stream, "board.png");
+                        stream.Position = 0;
+                        await this.Context.Channel.SendFileAsync(stream, "board.png");
 
-                    if(result.IsOver) {
-                        var overMessage = result.Winner != null ? $"Checkmate! {result.Winner.Value.Mention()} has won the match." : "Stalemate!";
+                        if(result.IsOver) {
+                            var overMessage = result.Winner != null ? $"Checkmate! {result.Winner.Value.Mention()} has won the match." : "Stalemate!";
 
-                        await this.ReplyAsync(overMessage);
-                    } else {
-                        var nextPlayer = await _chessService.WhoseTurn(Context.Channel.Id, Context.Message.Author.Id);
+                            await this.ReplyAsync(overMessage);
+                        } else {
+                            var nextPlayer = await _chessService.WhoseTurn(Context.Channel.Id, Context.Message.Author.Id);
 
-                        var yourMoveMessage = $"Your move {nextPlayer.Mention()}.";
+                            var yourMoveMessage = $"Your move {nextPlayer.Mention()}.";
 
-                        if(result.IsCheck)
-                            yourMoveMessage += " Check!";
+                            if(result.IsCheck)
+                                yourMoveMessage += " Check!";
 
-                        await Context.Channel.SendMessageAsync(yourMoveMessage);
+                            await Context.Channel.SendMessageAsync(yourMoveMessage);
+                        }
                     }
                 }
-            }
-            catch(ChessException ex)
-            {
-                await this.ReplyAsync(ex.Message);
-            }
+                catch(ChessException ex)
+                {
+                    await this.ReplyAsync(ex.Message);
+                }
+            });
         }
     }
 }

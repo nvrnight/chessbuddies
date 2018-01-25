@@ -22,9 +22,11 @@ namespace ChessBuddies.Commands
         [Command("shutdown")]
         public async Task SayAsync(string message = "")
         {
-            await Authorize();
+            await Task.Run(async () => {
+                await Authorize();
 
-            Program.ShutdownEvent.Set();
+                Program.ShutdownEvent.Set();
+            });
         }
     }
 }

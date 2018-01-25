@@ -19,20 +19,22 @@ namespace ChessBuddies.Chess.Commands
         [Command("show")]
         public async Task SayAsync(string message = "")
         {
-            using(var stream = new MemoryStream())
-            {
-                try
+            await Task.Run(async () => {
+                using(var stream = new MemoryStream())
                 {
-                    await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
+                    try
+                    {
+                        await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
 
-                    stream.Position = 0;
-                    await this.Context.Channel.SendFileAsync(stream, "board.png");
+                        stream.Position = 0;
+                        await this.Context.Channel.SendFileAsync(stream, "board.png");
+                    }
+                    catch(ChessException ex)
+                    {
+                        await ReplyAsync(ex.Message);
+                    }
                 }
-                catch(ChessException ex)
-                {
-                    await ReplyAsync(ex.Message);
-                }
-            }
+            });
         }
     }
 }

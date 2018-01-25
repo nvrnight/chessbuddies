@@ -19,41 +19,43 @@ namespace ChessBuddies.Chess.Commands
         [Command("accept")]
         public async Task SayAsync()
         {
-            try
-            {
-                var writeBoard = false;
-                if(await _chessService.HasChallenge(Context.Channel.Id, Context.Message.Author.Id))
+            await Task.Run(async () => {
+                try
                 {
-                    var match = await _chessService.AcceptChallenge(Context.Channel.Id, this.Context.Message.Author.Id);
-
-                    await this.ReplyAsync($"Match has started between {match.Challenger.Mention()} and {match.Challenged.Mention()}.");
-
-                    writeBoard = true;
-                }
-                else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author.Id))
-                {
-                    await _chessService.Undo(Context.Channel.Id, Context.Message.Author.Id);
-
-                    writeBoard = true;
-                }
-                else
-                    throw new ChessException("Nothing to accept.");
-
-                if(writeBoard)
-                {
-                    using(var stream = new MemoryStream())
+                    var writeBoard = false;
+                    if(await _chessService.HasChallenge(Context.Channel.Id, Context.Message.Author.Id))
                     {
-                        await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
+                        var match = await _chessService.AcceptChallenge(Context.Channel.Id, this.Context.Message.Author.Id);
 
-                        stream.Position = 0;
-                        await this.Context.Channel.SendFileAsync(stream, "board.png");
+                        await this.ReplyAsync($"Match has started between {match.Challenger.Mention()} and {match.Challenged.Mention()}.");
+
+                        writeBoard = true;
+                    }
+                    else if(await _chessService.HasUndoRequest(Context.Channel.Id, Context.Message.Author.Id))
+                    {
+                        await _chessService.Undo(Context.Channel.Id, Context.Message.Author.Id);
+
+                        writeBoard = true;
+                    }
+                    else
+                        throw new ChessException("Nothing to accept.");
+
+                    if(writeBoard)
+                    {
+                        using(var stream = new MemoryStream())
+                        {
+                            await _chessService.WriteBoard(Context.Channel.Id, Context.Message.Author.Id, stream);
+
+                            stream.Position = 0;
+                            await this.Context.Channel.SendFileAsync(stream, "board.png");
+                        }
                     }
                 }
-            }
-            catch(ChessException ex)
-            {
-                await this.ReplyAsync(ex.Message);
-            }
+                catch(ChessException ex)
+                {
+                    await this.ReplyAsync(ex.Message);
+                }
+            });
         }
     }
 }

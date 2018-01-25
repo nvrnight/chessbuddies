@@ -185,8 +185,6 @@ namespace ChessBuddies
                     {
                         await HandleMoveLogic(context, message);
                     }
-                    else
-                        await sendError(result.ErrorReason);
                 }
                 else
                 {
