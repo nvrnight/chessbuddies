@@ -8,6 +8,7 @@ namespace ChessBuddies.Chess.Models
     {
         [JsonIgnore]
         public Piece[][] PreviousBoardState {get; set;} = new Piece[8][] { new Piece[8], new Piece[8], new Piece[8], new Piece[8], new Piece[8], new Piece[8], new Piece[8], new Piece[8]};
+        public Player PreviousWhoseTurn {get; set;}
         public File OriginalFile {get; set;}
         public int OriginalRank {get; set;}
         public File NewFile {get; set;}

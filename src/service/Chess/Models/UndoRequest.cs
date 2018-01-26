@@ -7,5 +7,6 @@ namespace ChessBuddies.Chess.Models
     {
         public DateTime CreatedDate {get; set;}
         public ulong CreatedBy {get; set;}
+        public int Amount {get; set;}
     }
 }
