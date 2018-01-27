@@ -8,7 +8,8 @@ A .NET Core based Discord chess bot
 ## Instructions
 
 ### Discord Commands(!name, Example, Description):
-* !? or !help
+* **!?** or **!help**
+* **!info**, about the bot
 * **!challenge @<player>**, **!challenge @SomeDiscordUser**, challenge another player to a match
 * **!accept**, accept a match challenge or undo request
 * **!move**, **!move a2a4** or **!a2a4**, move your piece, if your pawn reaches the other side of the board it will be promoted to queen by default. You can promote your pawn to other pieces if you like, r = Rook, b = Bishop, q = Queen, n = Knight. An example move promoting a white pawn to a Knight would be **!a7a8n**
