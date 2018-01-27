@@ -1,6 +1,10 @@
 # Chess Buddies
 A .NET Core based Discord chess bot
 
+<a href="https://discordbots.org/bot/400489160441462787">
+  <img src="https://discordbots.org/api/widget/400489160441462787.svg" />
+</a>
+
 ## Instructions
 
 ### Discord Commands(!name, Example, Description):
