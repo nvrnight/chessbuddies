@@ -26,3 +26,7 @@ Pre-requisites: Install .NET Core 2.0.5 Runtime [32-bit](https://www.microsoft.c
 3. Open powershell in the directory(CTRL+SHIFT+Right Click -> Open Powershell Window Here).
 4. Edit appsettings.json and put your Discord account in the admins field and put your bot's token in the token field. If you don't know how to create a Discord bot or get your bot's token, follow the [Discord bot guide](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token).
 5. Run **dotnet ChessBuddies.dll**
+
+<a href="https://discordbots.org/bot/400489160441462787">
+  <img src="https://discordbots.org/api/widget/400489160441462787.svg" />
+</a>
