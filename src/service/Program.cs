@@ -46,8 +46,12 @@ namespace ChessBuddies
             if(!int.TryParse(config["confirmationsTimeout"], out timeout))
                 timeout = 30000;
 
+            var discordBotsApiKey = config["discordBotsApiKey"];
+            var discordBotsBotId = config["discordBotsBotId"];
+
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
+                .AddSingleton<IDiscordBotsService, DiscordBotsService>(s => new DiscordBotsService(discordBotsApiKey, discordBotsBotId))
                 .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout, s.GetService<IAssetService>()))
                 .AddSingleton<IAuthorizationService, AuthorizationService>(s => new AuthorizationService(adminUsernames))
                 .AddSingleton<ChessGame, ChessGame>()
@@ -64,13 +68,27 @@ namespace ChessBuddies
 
             var stateFilePath = Path.Combine(Directory.GetCurrentDirectory(), "state.json");
 
-            
+            if(!string.IsNullOrEmpty(discordBotsApiKey))
+            {
+                var discordBotsService = _services.GetService<IDiscordBotsService>();
+
+                async Task postStats() {
+                    await discordBotsService.UpdateStats(_client.Guilds.Count);
+                };
+
+                _client.Ready += postStats;
+                _client.JoinedGuild += async (c) => { await postStats(); };
+                _client.LeftGuild += async (c) => { await postStats(); };
+            }
+
             _client.Ready += async () => {
-                if(System.IO.File.Exists(stateFilePath))
-                {
-                    var deserializedMatches = JsonConvert.DeserializeObject<List<ChessMatch>>(System.IO.File.ReadAllText(stateFilePath));
-                    await _chessService.LoadState(deserializedMatches, _client);
-                }
+                await Task.Run(async () => {
+                    if(System.IO.File.Exists(stateFilePath))
+                    {
+                        var deserializedMatches = JsonConvert.DeserializeObject<List<ChessMatch>>(System.IO.File.ReadAllText(stateFilePath));
+                        await _chessService.LoadState(deserializedMatches, _client);
+                    }
+                });
             };
 
             ShutdownEvent.WaitOne();
