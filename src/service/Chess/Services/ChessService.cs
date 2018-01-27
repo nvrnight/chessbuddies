@@ -179,7 +179,7 @@ namespace ChessBuddies.Services
                 var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
 
                 if(match == null)
-                    throw new Exception($"You are not currently in a game.");
+                    throw new ChessException($"You are not currently in a game.");
 
                 _chessMatches.Remove(match);
 
