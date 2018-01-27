@@ -176,40 +176,52 @@ namespace ChessBuddies
 
         private async Task HandleCommandAsync(SocketMessage messageParam)
         {
-            // Don't process the command if it was a System Message
-            var message = messageParam as SocketUserMessage;
-            if (message == null || message.Author.IsBot) return;            
-            // Create a number to track where the prefix ends and the command begins
-            int argPos = 0;
-            // Determine if the message is a command, based on if it starts with '!' or a mention prefix
-            if (!(message.HasCharPrefix('!', ref argPos)) || message.HasMentionPrefix(_client.CurrentUser, ref argPos)) return;
-            // Create a Command Context
-            var context = new SocketCommandContext(_client, message);
-            // Execute the command. (result does not indicate a return value, 
-            // rather an object stating if the command executed successfully)
+            await Task.Run(async () => {
+                // Don't process the command if it was a System Message
+                var message = messageParam as SocketUserMessage;
+                if (message == null || message.Author.IsBot) return;            
+                // Create a number to track where the prefix ends and the command begins
+                int argPos = 0;
+                // Determine if the message is a command, based on if it starts with '!' or a mention prefix
+                var mentionsBot = message.Content.Trim() == _client.CurrentUser.Mention.Replace("<@!", "<@");
 
-            var result = await _commands.ExecuteAsync(context, argPos, _services);
+                if (!(message.HasCharPrefix('!', ref argPos)) && !message.HasMentionPrefix(_client.CurrentUser, ref argPos) && !mentionsBot) return;
 
-            if (!result.IsSuccess)
-            {
-                async Task sendError(string e)
+                // Create a Command Context
+                var context = new SocketCommandContext(_client, message);
+
+                if(mentionsBot)
                 {
-                    await context.Channel.SendMessageAsync(e);
+                    await context.Channel.SendMessageAsync("Use !help for a list of commands.");
+                    return;
                 }
+                
+                // Execute the command. (result does not indicate a return value, 
+                // rather an object stating if the command executed successfully)
 
-                if(result.ErrorReason == "Unknown command.")
+                var result = await _commands.ExecuteAsync(context, argPos, _services);
+
+                if (!result.IsSuccess)
                 {
-                    if(await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author.Id))
+                    async Task sendError(string e)
                     {
-                        await HandleMoveLogic(context, message);
+                        await context.Channel.SendMessageAsync(e);
+                    }
+
+                    if(result.ErrorReason == "Unknown command.")
+                    {
+                        if(await _chessService.PlayerIsInGame(context.Channel.Id, context.Message.Author.Id))
+                        {
+                            await HandleMoveLogic(context, message);
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine(result.Error.Value.ToString());
+                        await sendError("An Unexpected error occurred");
                     }
                 }
-                else
-                {
-                    Console.WriteLine(result.Error.Value.ToString());
-                    await sendError("An Unexpected error occurred");
-                }
-            }
+            });
         }
     }
 }
