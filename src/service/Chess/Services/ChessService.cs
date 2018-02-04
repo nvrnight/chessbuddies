@@ -64,7 +64,12 @@ namespace ChessBuddies.Services
         {
             return await Task.FromResult(new ChessServiceStatus {
                 ChallengeRequestsInProgress = _challenges.Count(),
-                MatchesInProgress = _chessMatches.Count()
+                MatchesInProgress = _chessMatches.Select(x =>
+                    new MatchStatus
+                    {
+                        Id = x.Id,
+                        LastMoveDate = x.History.OrderByDescending(h => h.MoveDate).FirstOrDefault()?.MoveDate 
+                    }).ToArray()
             });
         }
         public async Task<ulong> WhoseTurn(ulong channel, ulong player)

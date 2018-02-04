@@ -1,21 +1,23 @@
 using System.Threading.Tasks;
+using ChessBuddies;
+using ChessBuddies.Commands;
 using ChessBuddies.Services;
 using Discord.Commands;
 using Newtonsoft.Json;
 
-namespace ChessBuddies.Commands
+namespace service.Chess.Commands
 {
-    public class StatusCommand : AdminCommand
+    public class GamesCommand : AdminCommand
     {
         private readonly IAuthorizationService _authorizationService;
         private readonly IChessService _chessService;
-        public StatusCommand(IAuthorizationService authorizationService, IChessService chessService) : base(authorizationService)
+        public GamesCommand(IAuthorizationService authorizationService, IChessService chessService) : base(authorizationService)
         {
             _authorizationService = authorizationService;
             _chessService = chessService;
         }
 
-        [Command("status")]
+        [Command("games")]
         public async Task SayAsync(string message = "")
         {
             await Authorize();
