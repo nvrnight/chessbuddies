@@ -14,6 +14,8 @@ using SixLabors.Primitives;
 using ChessDotNet.Pieces;
 using Discord.WebSocket;
 using Newtonsoft.Json;
+using ChessBuddies.Database;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace ChessBuddies.Services
 {
@@ -43,8 +45,10 @@ namespace ChessBuddies.Services
     {
         private readonly int _confirmationsTimeout;
         private readonly IAssetService _assetService;
-        public ChessService(int confirmationsTimeout, IAssetService assetService)
+        private readonly IServiceProvider _services;
+        public ChessService(int confirmationsTimeout, IAssetService assetService, IServiceProvider services)
         {
+            _services = services;
             _confirmationsTimeout = confirmationsTimeout;
             _assetService = assetService;
         }
@@ -54,7 +58,7 @@ namespace ChessBuddies.Services
         public List<ChessChallenge> Challenges { get { return _challenges; } }
         public List<ChessMatch> Matches
         {
-            get{ return _chessMatches; }
+            get { return _chessMatches; }
             set
             {
                 _chessMatches = value;
@@ -62,13 +66,14 @@ namespace ChessBuddies.Services
         }
         public async Task<ChessServiceStatus> GetStatus()
         {
-            return await Task.FromResult(new ChessServiceStatus {
+            return await Task.FromResult(new ChessServiceStatus
+            {
                 ChallengeRequestsInProgress = _challenges.Count(),
                 MatchesInProgress = _chessMatches.Select(x =>
                     new MatchStatus
                     {
                         Id = x.Id,
-                        LastMoveDate = x.History.OrderByDescending(h => h.MoveDate).FirstOrDefault()?.MoveDate 
+                        LastMoveDate = x.History.OrderByDescending(h => h.MoveDate).FirstOrDefault()?.MoveDate
                     }).ToArray()
             });
         }
@@ -89,9 +94,10 @@ namespace ChessBuddies.Services
         }
         public async Task WriteBoard(ChessMove lastMove, ChessGame chessGame, Stream stream)
         {
-            await Task.Run(() => {
+            await Task.Run(() =>
+            {
                 var board = SixLabors.ImageSharp.Image.Load(_assetService.GetImagePath("board.png"));
-                
+
                 var boardPieces = chessGame.GetBoard();
 
                 Dictionary<int, int> RankToRowMap = new Dictionary<int, int>
@@ -106,12 +112,13 @@ namespace ChessBuddies.Services
                     { 8, 0 }
                 };
 
-                board.Mutate(processor => {
-                    for(var columnIndex = 0; columnIndex < boardPieces.Length; columnIndex++)
+                board.Mutate(processor =>
+                {
+                    for (var columnIndex = 0; columnIndex < boardPieces.Length; columnIndex++)
                     {
-                        for(var rowIndex = 0; rowIndex < boardPieces[columnIndex].Length; rowIndex++)
+                        for (var rowIndex = 0; rowIndex < boardPieces[columnIndex].Length; rowIndex++)
                         {
-                            if(
+                            if (
                                 lastMove != null &&
                                 (
                                     ((int)lastMove.OriginalFile == columnIndex && RankToRowMap[lastMove.OriginalRank] == rowIndex) ||
@@ -122,16 +129,16 @@ namespace ChessBuddies.Services
 
                             var piece = boardPieces[rowIndex][columnIndex];
 
-                            if(piece != null)
+                            if (piece != null)
                             {
                                 var fenCharacter = piece.GetFenCharacter();
 
-                                if(fenCharacter.ToString().ToUpper() == "K" && chessGame.IsInCheck(piece.Owner))
+                                if (fenCharacter.ToString().ToUpper() == "K" && chessGame.IsInCheck(piece.Owner))
                                     DrawImage(processor, "red_square", columnIndex, rowIndex);
 
                                 var prefix = "white";
 
-                                if(new[] {'r', 'n', 'b', 'q', 'k', 'p'}.Contains(fenCharacter))
+                                if (new[] { 'r', 'n', 'b', 'q', 'k', 'p' }.Contains(fenCharacter))
                                     prefix = "black";
 
                                 DrawImage(processor, $"{prefix}_{fenCharacter.ToString().ToLower()}", columnIndex, rowIndex);
@@ -145,10 +152,11 @@ namespace ChessBuddies.Services
         }
         public async Task WriteBoard(ulong channel, ulong player, Stream stream)
         {
-            await Task.Run(async () => {
+            await Task.Run(async () =>
+            {
                 var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
 
-                if(match == null)
+                if (match == null)
                     throw new ChessException("You are not in a game.");
 
                 var lastMove = match.History.OrderByDescending(x => x.MoveDate).FirstOrDefault();
@@ -158,20 +166,21 @@ namespace ChessBuddies.Services
         }
         public async Task<ChessChallenge> Challenge(ulong channel, ulong player1, ulong player2, Action<ChessChallenge> onTimeout = null)
         {
-            return await Task.Run(async () => {
-                if(await PlayerIsInGame(channel, player1))
+            return await Task.Run(async () =>
+            {
+                if (await PlayerIsInGame(channel, player1))
                     throw new ChessException($"{player1.Mention()} is currently in a game.");
 
-                if(await PlayerIsInGame(channel, player2))
+                if (await PlayerIsInGame(channel, player2))
                     throw new ChessException($"{player2.Mention()} is currently in a game.");
 
-                if(_challenges.Any(x => x.Channel == channel && x.Challenged == player1 && x.Challenger == player2))
+                if (_challenges.Any(x => x.Channel == channel && x.Challenged == player1 && x.Challenger == player2))
                     throw new ChessException($"{player1.Mention()} has already challenged {player2.Mention()}.");
 
                 var challenge = new ChessChallenge { ChallengeDate = DateTime.UtcNow, Channel = channel, Challenger = player1, Challenged = player2 };
-                
+
                 _challenges.Add(challenge);
-                
+
                 RemoveChallenge(challenge, onTimeout);
 
                 return await Task.FromResult(challenge);
@@ -180,31 +189,33 @@ namespace ChessBuddies.Services
 
         public async Task<ChessMatch> Resign(ulong channel, ulong player)
         {
-            return await Task.Run(async () => {
+            return await Task.Run(async () =>
+            {
                 var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
 
-                if(match == null)
+                if (match == null)
                     throw new ChessException($"You are not currently in a game.");
 
                 _chessMatches.Remove(match);
 
                 return await Task.FromResult(match);
             });
-            
+
         }
 
         public async Task<ChessMatch> AcceptChallenge(ulong channel, ulong player)
         {
-            return await Task.Run(async () => {
-                if(await PlayerIsInGame(channel, player))
+            return await Task.Run(async () =>
+            {
+                if (await PlayerIsInGame(channel, player))
                     throw new ChessException($"{player.Mention()} is currently in a game.");
 
                 var challenge = _challenges.Where(x => x.Channel == channel && x.Challenged == player).OrderBy(x => x.ChallengeDate).FirstOrDefault();
 
-                if(challenge == null)
+                if (challenge == null)
                     throw new ChessException($"No challenge exists for you to accept.");
 
-                if(await PlayerIsInGame(channel, challenge.Challenger))
+                if (await PlayerIsInGame(channel, challenge.Challenger))
                     throw new ChessException($"{challenge.Challenger.Mention()} is currently in a game.");
 
                 var chessGame = new ChessGame();
@@ -219,21 +230,22 @@ namespace ChessBuddies.Services
 
         public async Task<ChessMatchStatus> Move(Stream stream, ulong channel, ulong player, string rawMove)
         {
-            return await Task.Run(async () => {
+            return await Task.Run(async () =>
+            {
                 var moveInput = rawMove.Replace(" ", "").ToUpper();
 
-                if(!Regex.IsMatch(moveInput, "^[A-H][1-8][A-H][1-8][Q|N|B|R]?$"))
+                if (!Regex.IsMatch(moveInput, "^[A-H][1-8][A-H][1-8][Q|N|B|R]?$"))
                     throw new ChessException("Error parsing move. Example move: a2a4");
 
                 var match = _chessMatches.SingleOrDefault(x => x.Channel == channel && x.Players.Contains(player));
 
-                if(match == null)
+                if (match == null)
                     throw new ChessException("You are not currently in a game");
 
                 var whoseTurn = match.Game.WhoseTurn;
                 var otherPlayer = whoseTurn == Player.White ? Player.Black : Player.White;
 
-                if((whoseTurn == Player.White && player != match.Challenger) || (whoseTurn == Player.Black && player != match.Challenged))
+                if ((whoseTurn == Player.White && player != match.Challenger) || (whoseTurn == Player.Black && player != match.Challenged))
                     throw new ChessException("It's not your turn.");
 
                 var sourceX = moveInput[0].ToString();
@@ -253,12 +265,12 @@ namespace ChessBuddies.Services
 
                 var piece = match.Game.GetPieceAt(originalPosition);
 
-                if(piece != null && !(piece is Pawn))
+                if (piece != null && !(piece is Pawn))
                     promotionChar = null;
 
                 var move = new Move(originalPosition, destPosition, whoseTurn, promotionChar);
 
-                if(!match.Game.IsValidMove(move))
+                if (!match.Game.IsValidMove(move))
                     throw new ChessException("Invalid move.");
 
                 var chessMove = new ChessMove
@@ -272,9 +284,9 @@ namespace ChessBuddies.Services
                 };
 
                 var board = match.Game.GetBoard();
-                for(var column = 0; column < board.Length; column++)
+                for (var column = 0; column < board.Length; column++)
                 {
-                    for(var row = 0; row < board[column].Length; row++)
+                    for (var row = 0; row < board[column].Length; row++)
                     {
                         chessMove.PreviousBoardState[column][row] = board[column][row];
                     }
@@ -296,8 +308,34 @@ namespace ChessBuddies.Services
 
                 await WriteBoard(channel, player, stream);
 
-                if(isOver)
+                if (isOver)
+                {
+                    #pragma warning disable 4014
+                    Task.Run(async () =>
+                    {
+                        using (Db db = _services.GetService<Db>())
+                        {
+                            await db.EndMatch(match);
+                            db.SaveChanges();
+                        }
+                    });
+                    #pragma warning restore 4014
                     _chessMatches.Remove(match);
+                }
+                else
+                {
+                    #pragma warning disable 4014
+                    Task.Run(async () =>
+                    {
+                        using (Db db = _services.GetService<Db>())
+                        {
+                            await db.SaveOrUpdateMatch(match);
+                            db.SaveChanges();
+                        }
+                    });
+                    #pragma warning restore 4014
+                }
+                    
 
                 return await Task.FromResult(status);
             });
@@ -310,9 +348,10 @@ namespace ChessBuddies.Services
 
         private async void RemoveUndoRequest(ChessMatch match, Action<ChessMatch> onTimeout)
         {
-            await Task.Run(async () => {
+            await Task.Run(async () =>
+            {
                 await Task.Delay(_confirmationsTimeout);
-                if(match.UndoRequest != null)
+                if (match.UndoRequest != null)
                 {
                     match.UndoRequest = null;
                     onTimeout(match);
@@ -322,13 +361,14 @@ namespace ChessBuddies.Services
 
         private async void RemoveChallenge(ChessChallenge challenge, Action<ChessChallenge> onTimeout)
         {
-            await Task.Run(async () => {
+            await Task.Run(async () =>
+            {
                 await Task.Delay(_confirmationsTimeout);
 
-                if(_challenges.Contains(challenge))
+                if (_challenges.Contains(challenge))
                 {
                     _challenges.Remove(challenge);
-                    if(onTimeout != null)
+                    if (onTimeout != null)
                         onTimeout(challenge);
                 }
             });
@@ -336,28 +376,29 @@ namespace ChessBuddies.Services
 
         public async Task<UndoRequest> UndoRequest(ulong channel, ulong player, int amount, Stream stream, Action<ChessMatch> onTimeout = null)
         {
-            return await Task.Run(async () => {
+            return await Task.Run(async () =>
+            {
                 var match = await GetMatch(channel, player);
 
-                if(match == null)
+                if (match == null)
                     throw new ChessException("You are not in a game.");
-                
+
                 var historyCount = match.History.Count();
-                if(historyCount < amount)
+                if (historyCount < amount)
                     amount = historyCount;
 
                 var moveToRevert = match.History.OrderByDescending(x => x.MoveDate).Skip(amount - 1).FirstOrDefault();
-                if(moveToRevert == null)
+                if (moveToRevert == null)
                     throw new ChessException("Nothing to undo.");
 
                 var userWhoseTurn = match.Game.WhoseTurn == Player.White ? match.Challenged : match.Challenger;
 
-                if(userWhoseTurn != player)
+                if (userWhoseTurn != player)
                     throw new ChessException("You can't undo another players turn.");
-                
-                if(match.UndoRequest != null)
+
+                if (match.UndoRequest != null)
                     throw new ChessException("Undo request is already in process.");
-                
+
                 var undoRequest = new UndoRequest { CreatedDate = DateTime.UtcNow, CreatedBy = player, Amount = amount };
 
                 match.UndoRequest = undoRequest;
@@ -366,7 +407,7 @@ namespace ChessBuddies.Services
 
                 var previousMove = match.History.OrderByDescending(x => x.MoveDate).Skip(amount).FirstOrDefault();
 
-                await WriteBoard(previousMove, new ChessGame(new GameCreationData { Board = moveToRevert.PreviousBoardState, WhoseTurn = moveToRevert.PreviousWhoseTurn}), stream);
+                await WriteBoard(previousMove, new ChessGame(new GameCreationData { Board = moveToRevert.PreviousBoardState, WhoseTurn = moveToRevert.PreviousWhoseTurn }), stream);
 
                 return await Task.FromResult(undoRequest);
             });
@@ -374,29 +415,30 @@ namespace ChessBuddies.Services
 
         public async Task Undo(ulong channel, ulong player)
         {
-            await Task.Run(async () => {
+            await Task.Run(async () =>
+            {
                 var match = await GetMatch(channel, player);
 
-                if(match == null)
+                if (match == null)
                     throw new ChessException("You are not in a game.");
 
                 var amount = match.UndoRequest.Amount;
                 var historyCount = match.History.Count();
-                if(historyCount < amount)
+                if (historyCount < amount)
                     amount = historyCount;
 
                 match.History = match.History.OrderByDescending(x => x.MoveDate).Skip(amount - 1).ToList();
 
                 var move = match.History.OrderByDescending(x => x.MoveDate).FirstOrDefault();
 
-                if(move == null)
+                if (move == null)
                     throw new ChessException("Nothing to undo.");
 
                 var board = match.Game.GetBoard();
 
-                for(var column = 0; column < move.PreviousBoardState.Length; column++)
+                for (var column = 0; column < move.PreviousBoardState.Length; column++)
                 {
-                    for(var row = 0; row < move.PreviousBoardState[column].Length; row++)
+                    for (var row = 0; row < move.PreviousBoardState[column].Length; row++)
                     {
                         board[column][row] = move.PreviousBoardState[column][row];
                     }
@@ -417,10 +459,11 @@ namespace ChessBuddies.Services
 
         public async Task<bool> HasUndoRequest(ulong channel, ulong player)
         {
-            return await Task.Run(async () => {
+            return await Task.Run(async () =>
+            {
                 var match = await GetMatch(channel, player);
 
-                if(match?.UndoRequest != null)
+                if (match?.UndoRequest != null)
                 {
                     var playerWhoCanAccept = match.UndoRequest.CreatedBy == match.Challenger ? match.Challenged : match.Challenger;
 
@@ -433,29 +476,30 @@ namespace ChessBuddies.Services
 
         public async Task LoadState(List<ChessMatch> matches, DiscordSocketClient client)
         {
-            await Task.Run(() => {
-                foreach(var match in matches)
+            await Task.Run(() =>
+            {
+                foreach (var match in matches)
                 {
                     try
                     {
                         match.Game = new ChessGame();
 
-                        foreach(var move in match.History.OrderBy(x => x.MoveDate))
+                        foreach (var move in match.History.OrderBy(x => x.MoveDate))
                         {
                             move.PreviousBoardState = match.Game.GetBoard();
                             match.Game.ApplyMove(new Move(new Position(move.OriginalFile, move.OriginalRank), new Position(move.NewFile, move.NewRank), match.Game.WhoseTurn), true);
                         }
-                    
+
                         Matches.Add(match);
                     }
-                    catch(Exception ex)
+                    catch (Exception ex)
                     {
                         Console.WriteLine("Failed to load match.");
                         Console.WriteLine(JsonConvert.SerializeObject(match));
                         Console.WriteLine(ex.ToString());
-                    }                
+                    }
                 }
             });
         }
-    }    
+    }
 }

@@ -14,6 +14,9 @@ using System.Threading;
 using Newtonsoft.Json;
 using ChessBuddies.Chess.Models;
 using System.Collections.Generic;
+using ChessBuddies.Database;
+using Microsoft.EntityFrameworkCore;
+using System.Linq;
 
 namespace ChessBuddies
 {
@@ -52,11 +55,12 @@ namespace ChessBuddies
             _services = new ServiceCollection()
                 .AddSingleton<IAssetService, AssetService>()
                 .AddSingleton<IDiscordBotsService, DiscordBotsService>(s => new DiscordBotsService(discordBotsApiKey, discordBotsBotId))
-                .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout, s.GetService<IAssetService>()))
+                .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout, s.GetService<IAssetService>(), _services))
                 .AddSingleton<IAuthorizationService, AuthorizationService>(s => new AuthorizationService(adminUsernames))
                 .AddSingleton<ChessGame, ChessGame>()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
+                .AddEntityFrameworkNpgsql().AddDbContext<Db>(options => options.UseNpgsql(config["Db"]), ServiceLifetime.Transient)
                 .BuildServiceProvider();
 
             _chessService = _services.GetService<IChessService>();
@@ -85,15 +89,21 @@ namespace ChessBuddies
                 await Task.Run(async () => {
                     if(System.IO.File.Exists(stateFilePath))
                     {
-                        var deserializedMatches = JsonConvert.DeserializeObject<List<ChessMatch>>(System.IO.File.ReadAllText(stateFilePath));
-                        await _chessService.LoadState(deserializedMatches, _client);
+                        using(var db = _services.GetService<Db>())
+                        {
+                            var matches = new List<ChessMatch>();
+                            foreach(var match in db.Matches)
+                            {
+                                matches.Add(JsonConvert.DeserializeObject<ChessMatch>(match.matchjson));
+                            }
+
+                            await _chessService.LoadState(matches, _client);
+                        }
                     }
                 });
             };
 
             ShutdownEvent.WaitOne();
-
-            System.IO.File.WriteAllText(stateFilePath, JsonConvert.SerializeObject(_chessService.Matches));
 
             await _client.SetGameAsync(null);
             await _client.StopAsync();

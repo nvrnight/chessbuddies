@@ -2,6 +2,7 @@ using System.IO;
 using System.Threading.Tasks;
 using ChessBuddies;
 using ChessBuddies.Chess.Exceptions;
+using ChessBuddies.Database;
 using ChessBuddies.Services;
 using Discord.Commands;
 
@@ -18,10 +19,11 @@ namespace ChessBuddies.Chess.Commands
         [Command("move")]
         public async Task SayAsync(string message)
         {
-            await Task.Run(async () => {
+            await Task.Run(async () =>
+            {
                 try
                 {
-                    using(var stream = new MemoryStream())
+                    using (var stream = new MemoryStream())
                     {
                         var result = await _chessService.Move(stream, Context.Channel.Id, Context.Message.Author.Id, message);
 
@@ -30,23 +32,26 @@ namespace ChessBuddies.Chess.Commands
                         stream.Position = 0;
                         await this.Context.Channel.SendFileAsync(stream, "board.png");
 
-                        if(result.IsOver) {
+                        if (result.IsOver)
+                        {
                             var overMessage = result.Winner != null ? $"Checkmate! {result.Winner.Value.Mention()} has won the match." : "Stalemate!";
 
                             await this.ReplyAsync(overMessage);
-                        } else {
+                        }
+                        else
+                        {
                             var nextPlayer = await _chessService.WhoseTurn(Context.Channel.Id, Context.Message.Author.Id);
 
                             var yourMoveMessage = $"Your move {nextPlayer.Mention()}.";
 
-                            if(result.IsCheck)
+                            if (result.IsCheck)
                                 yourMoveMessage += " Check!";
 
                             await Context.Channel.SendMessageAsync(yourMoveMessage);
                         }
                     }
                 }
-                catch(ChessException ex)
+                catch (ChessException ex)
                 {
                     await this.ReplyAsync(ex.Message);
                 }
