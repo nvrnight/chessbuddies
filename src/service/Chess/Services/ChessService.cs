@@ -197,6 +197,16 @@ namespace ChessBuddies.Services
                     throw new ChessException($"You are not currently in a game.");
 
                 _chessMatches.Remove(match);
+                #pragma warning disable 4014
+                Task.Run(async () =>
+                {
+                    using (Db db = _services.GetService<Db>())
+                    {
+                        await db.EndMatch(match);
+                        db.SaveChanges();
+                    }
+                });
+                #pragma warning restore 4014
 
                 return await Task.FromResult(match);
             });
