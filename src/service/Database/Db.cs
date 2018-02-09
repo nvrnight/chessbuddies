@@ -11,12 +11,19 @@ namespace ChessBuddies.Database
 {
     public class Db : DbContext
     {
+        public Db() {}
         public Db(DbContextOptions<Db> options) : base(options)
         {
             
         }
 
         public virtual DbSet<ChessMatchEntity> Matches {get; set;}
+
+        protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+        {
+            var configuration = Program.GetConfiguration();
+            optionsBuilder.UseNpgsql(configuration["Db"]);
+        }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

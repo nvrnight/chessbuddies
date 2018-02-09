@@ -29,11 +29,16 @@ namespace ChessBuddies
         private IChessService _chessService;
         public static void Main(string[] args) => new Program().MainAsync().GetAwaiter().GetResult();
 
-		public async Task MainAsync()
-		{
-            var config = new ConfigurationBuilder()
+        public static IConfigurationRoot GetConfiguration()
+        {
+            return new ConfigurationBuilder()
                 .SetBasePath(Directory.GetCurrentDirectory())
                 .AddJsonFile("appsettings.json").Build();
+        }
+
+		public async Task MainAsync()
+		{
+            var config = GetConfiguration();
 
             _client = new DiscordSocketClient();
             _commands = new CommandService();
