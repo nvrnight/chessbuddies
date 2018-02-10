@@ -75,8 +75,6 @@ namespace ChessBuddies
             await _client.LoginAsync(TokenType.Bot, token);
             await _client.StartAsync();
 
-            var stateFilePath = Path.Combine(Directory.GetCurrentDirectory(), "state.json");
-
             if(!string.IsNullOrEmpty(discordBotsApiKey))
             {
                 var discordBotsService = _services.GetService<IDiscordBotsService>();
@@ -92,18 +90,15 @@ namespace ChessBuddies
 
             _client.Ready += async () => {
                 await Task.Run(async () => {
-                    if(System.IO.File.Exists(stateFilePath))
+                    using(var db = _services.GetService<Db>())
                     {
-                        using(var db = _services.GetService<Db>())
+                        var matches = new List<ChessMatch>();
+                        foreach(var match in db.Matches)
                         {
-                            var matches = new List<ChessMatch>();
-                            foreach(var match in db.Matches)
-                            {
-                                matches.Add(JsonConvert.DeserializeObject<ChessMatch>(match.matchjson));
-                            }
-
-                            await _chessService.LoadState(matches, _client);
+                            matches.Add(JsonConvert.DeserializeObject<ChessMatch>(match.matchjson));
                         }
+
+                        await _chessService.LoadState(matches, _client);
                     }
                 });
             };
