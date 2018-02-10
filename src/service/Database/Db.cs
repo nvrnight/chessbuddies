@@ -18,6 +18,7 @@ namespace ChessBuddies.Database
         }
 
         public virtual DbSet<ChessMatchEntity> Matches {get; set;}
+        public virtual DbSet<GameStatEntity> GameStats {get; set;} 
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -28,11 +29,19 @@ namespace ChessBuddies.Database
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             modelBuilder.ApplyConfiguration(new ChessMatchEntityMap());
+            modelBuilder.ApplyConfiguration(new GameStatEntityMap());
         }
-        public async Task EndMatch(ChessMatch match)
+        public async Task EndMatch(ChessMatch match, long? winner)
         {
-            await Task.Run(() => {
-                var matchEntity = Matches.Single(x => x.id == match.Id);
+            await Task.Run(async () => {
+                var matchEntity = await Matches.SingleAsync(x => x.id == match.Id);
+                await GameStats.AddAsync(new GameStatEntity {
+                    winner = winner,
+                    challenged = (long)match.Challenged,
+                    challenger = (long)match.Challenger,
+                    total_moves = match.History.Count(),
+                    length_seconds = (long)(DateTime.UtcNow - match.CreatedDate).TotalSeconds
+                });
                 Matches.Remove(matchEntity);
             });
         }

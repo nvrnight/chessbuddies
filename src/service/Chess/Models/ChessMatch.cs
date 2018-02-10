@@ -8,6 +8,7 @@ namespace ChessBuddies.Chess.Models
 {
     public class ChessMatch
     {
+        public DateTime CreatedDate {get;set;} = DateTime.UtcNow;
         public Guid Id {get; set;} = Guid.NewGuid();
         public List<ChessMove> History {get; set;} = new List<ChessMove>();
         public UndoRequest UndoRequest {get; set;}

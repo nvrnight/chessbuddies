@@ -202,7 +202,7 @@ namespace ChessBuddies.Services
                 {
                     using (Db db = _services.GetService<Db>())
                     {
-                        await db.EndMatch(match);
+                        await db.EndMatch(match, (long)(match.Challenger == player ? match.Challenged : match.Challenger));
                         db.SaveChanges();
                     }
                 });
@@ -233,6 +233,11 @@ namespace ChessBuddies.Services
 
                 _challenges.Remove(challenge);
                 _chessMatches.Add(chessMatch);
+                using (Db db = _services.GetService<Db>())
+                {
+                    await db.SaveOrUpdateMatch(chessMatch);
+                    db.SaveChanges();
+                }
 
                 return await Task.FromResult<ChessMatch>(chessMatch);
             });
@@ -308,11 +313,12 @@ namespace ChessBuddies.Services
 
                 var checkMated = match.Game.IsCheckmated(otherPlayer);
                 var isOver = checkMated || match.Game.IsStalemated(otherPlayer);
+                var winner = isOver && checkMated ? player : (ulong?)null;
 
                 var status = new ChessMatchStatus
                 {
                     IsOver = isOver,
-                    Winner = isOver && checkMated ? player : (ulong?)null,
+                    Winner = winner,
                     IsCheck = match.Game.IsInCheck(otherPlayer)
                 };
 
@@ -325,7 +331,7 @@ namespace ChessBuddies.Services
                     {
                         using (Db db = _services.GetService<Db>())
                         {
-                            await db.EndMatch(match);
+                            await db.EndMatch(match, (long?)winner);
                             db.SaveChanges();
                         }
                     });
@@ -459,6 +465,12 @@ namespace ChessBuddies.Services
 
                 match.History.Remove(move);
                 match.UndoRequest = null;
+
+                using (Db db = _services.GetService<Db>())
+                {
+                    await db.SaveOrUpdateMatch(match);
+                    db.SaveChanges();
+                }
             });
         }
 

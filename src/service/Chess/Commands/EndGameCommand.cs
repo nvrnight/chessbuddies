@@ -55,7 +55,7 @@ namespace service.Chess.Commands
                 {
                     using (Db db = _services.GetService<Db>())
                     {
-                        await db.EndMatch(match);
+                        await db.EndMatch(match, null);
                         db.SaveChanges();
                     }
                 });
