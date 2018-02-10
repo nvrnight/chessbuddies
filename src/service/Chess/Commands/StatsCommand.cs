@@ -20,12 +20,14 @@ namespace ChessBuddies.Chess.Commands
         private void AppendStats(StringBuilder statsBuilder, string title, int totalGames, int whiteWins, int blackWins, int staleMates, int? totalWins = null)
         {
             statsBuilder.AppendLine(title);
+            statsBuilder.AppendLine("```");
             statsBuilder.AppendLine($"Total Games: {totalGames}");
             if(totalWins != null)
                 statsBuilder.AppendLine($"Total Wins: {totalWins}");
             statsBuilder.AppendLine($"White Wins: {whiteWins}({whiteWins.GetPercentage(totalGames)}%)");
             statsBuilder.AppendLine($"Black Wins: {blackWins}({blackWins.GetPercentage(totalGames)}%)");
             statsBuilder.AppendLine($"Stalemates: {staleMates}({staleMates.GetPercentage(totalGames)}%)");
+            statsBuilder.AppendLine("```");
             statsBuilder.AppendLine();
         }
 
@@ -39,21 +41,12 @@ namespace ChessBuddies.Chess.Commands
                 var authorId = (long)Context.Message.Author.Id;
 
                 var statsBuilder = new StringBuilder();
-                statsBuilder.AppendLine("```");
 
-                var gameStats = _db.GameStats.Where(x =>
+                var authorGameStats = _db.GameStats.Where(x =>
                     x.challenged == authorId || x.challenger == authorId
                 );
-                var title = "**Your Stats**";
-                var authorWonGames = gameStats.Where(x => x.winner == authorId);
-                AppendStats(statsBuilder,
-                    title,
-                    gameStats.Count(),
-                    authorWonGames.Count(x => x.winner == x.challenger),
-                    authorWonGames.Count(x => x.winner == x.challenged),
-                    gameStats.Count(x => x.winner == null),
-                    authorWonGames.Count()
-                );
+                var authorWonGames = authorGameStats.Where(x => x.winner == authorId);
+                
 
                 if (!string.IsNullOrEmpty(message))
                 {
@@ -64,17 +57,33 @@ namespace ChessBuddies.Chess.Commands
                         var user = await Context.Channel.GetUserAsync(ulong.Parse(matches[0].Groups[1].Value));
                         var userId = (long)user.Id;
 
-                        var authorGamesAgainstUser = gameStats.Where(x => x.challenged == userId || x.challenger == userId);
+                        var userGames = _db.GameStats.Where(x =>
+                            x.challenged == userId || x.challenger == userId
+                        );
+
+                        var userWonGames = userGames.Where(x => x.winner == authorId);
+
+                        var authorGamesAgainstUser = authorGameStats.Where(x => x.challenged == userId || x.challenger == userId);
 
                         var authorWonGamesAgainstUser = authorGamesAgainstUser.Where(x => x.winner == authorId);
+
                         AppendStats(statsBuilder,
-                            $"**Your Stats vs {user.Username}**",
+                            $"**{user.Username}'s Stats**",
+                            userGames.Count(),
+                            userWonGames.Count(x => x.winner == x.challenger),
+                            userWonGames.Count(x => x.winner == x.challenged),
+                            userGames.Count(x => x.winner == null),
+                            userWonGames.Count()
+                        );
+
+                        AppendStats(statsBuilder,
+                            $"**{Context.Message.Author.Username}'s Stats vs {user.Username}**",
                             authorGamesAgainstUser.Count(),
                             authorWonGamesAgainstUser.Count(x => x.winner == x.challenger),
                             authorWonGamesAgainstUser.Count(x => x.winner == x.challenged),
                             authorGamesAgainstUser.Count(x => x.winner == null),
                             authorWonGamesAgainstUser.Count()
-                        );   
+                        );
                     }
                 }
                 else
@@ -86,9 +95,16 @@ namespace ChessBuddies.Chess.Commands
                         _db.GameStats.Count(x => x.winner == x.challenged),
                         _db.GameStats.Count(x => x.winner == null)
                     );
-                }
 
-                statsBuilder.Append("```");
+                    AppendStats(statsBuilder,
+                        $"**{Context.Message.Author.Username}'s Stats**",
+                        authorGameStats.Count(),
+                        authorWonGames.Count(x => x.winner == x.challenger),
+                        authorWonGames.Count(x => x.winner == x.challenged),
+                        authorGameStats.Count(x => x.winner == null),
+                        authorWonGames.Count()
+                    );
+                }
 
                 await ReplyAsync(statsBuilder.ToString());
             });

@@ -108,8 +108,17 @@ namespace ChessBuddies
                 });
             };
 
+            //Just a convenient way to pre-load EF related dlls.
+            #pragma warning disable 4014
+            Task.Run(() => {
+                using(var db = _services.GetService<Db>())
+                    db.Matches.Count();
+            });
+            #pragma warning restore 4014
+
             ShutdownEvent.WaitOne();
 
+            await _chessService.SaveMatches();
             await _client.SetGameAsync(null);
             await _client.StopAsync();
             await _client.LogoutAsync();

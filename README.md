@@ -16,7 +16,7 @@ A .NET Core based Discord chess bot
 * **!resign**, resign the match
 * **!show**, display the board
 * **!undo**, **!undo 3**, request the last 3 moves be undone
-* **!stats** or **!stats @SomeDiscordUser**, displays your game stats and either the bots stats or your stats versus the referenced user.
+* **!stats** or **!stats @SomeDiscordUser**, displays yours and the bot's stats or the referenced user's stats and their stats against you.
 
 ### Administration Commands
 * **!shutdown**, this will save on-going games to ./state.json and shutdown the bot.
@@ -31,7 +31,7 @@ A .NET Core based Discord chess bot
 * .NET Core 2.0.5 Runtime [32-bit](https://www.microsoft.com/net/download/thank-you/dotnet-runtime-2.0.5-windows-x86-installer) or [64-bit](https://www.microsoft.com/net/download/thank-you/dotnet-runtime-2.0.5-windows-x64-installer).
 * PostgreSQL
 
-1. Download the [current release](https://github.com/nvrnight/chessbuddies/releases/tag/1.0.14) from the [Releases tab](https://github.com/nvrnight/chessbuddies/releases)
+1. Download the [current release](https://github.com/nvrnight/chessbuddies/releases/tag/1.0.15) from the [Releases tab](https://github.com/nvrnight/chessbuddies/releases)
 2. Unzip it to a directory.
 3. Open powershell in the directory(CTRL+SHIFT+Right Click -> Open Powershell Window Here).
 4. Edit appsettings.json and put your Discord account in the admins field and put your bot's token in the token field. If you don't know how to create a Discord bot or get your bot's token, follow the [Discord bot guide](https://github.com/reactiflux/discord-irc/wiki/Creating-a-discord-bot-&-getting-a-token).

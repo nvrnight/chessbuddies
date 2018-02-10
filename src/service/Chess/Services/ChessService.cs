@@ -21,6 +21,7 @@ namespace ChessBuddies.Services
 {
     public interface IChessService
     {
+        Task SaveMatches();
         Task<ChessServiceStatus> GetStatus();
         Task<ulong> WhoseTurn(ulong channel, ulong player);
         Task<ChessMatch> GetMatch(ulong channel, ulong player);
@@ -62,6 +63,16 @@ namespace ChessBuddies.Services
             set
             {
                 _chessMatches = value;
+            }
+        }
+        public async Task SaveMatches()
+        {
+            using(var db = _services.GetService<Db>())
+            {
+                foreach(var match in Matches)
+                    await db.SaveOrUpdateMatch(match);
+
+                await db.SaveChangesAsync();
             }
         }
         public async Task<ChessServiceStatus> GetStatus()
