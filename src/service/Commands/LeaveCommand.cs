@@ -6,19 +6,17 @@ using Discord.WebSocket;
 
 namespace ChessBuddies.Commands
 {
-    public class LeaveCommand : AdminCommand
+    public class LeaveCommand : ModuleBase<SocketCommandContext>
     {
-        private readonly IAuthorizationService _authorizationService;
-        public LeaveCommand(IAuthorizationService authorizationService) : base(authorizationService)
+        public LeaveCommand()
         {
-            _authorizationService = authorizationService;
         }
-
+        [IsAdmin]
         [Command("leave")]
+        [Summary("Leaves the current guild")]
         public async Task SayAsync(ulong channelId)
         {
             await Task.Run(async () => {
-                await Authorize();
 
                 var channel = Context.Client.GetChannel(channelId) as SocketGuildChannel;
 

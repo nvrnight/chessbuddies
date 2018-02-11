@@ -9,24 +9,16 @@ using Discord.Commands;
 
 namespace ChessBuddies.Commands
 {
-    public class ShutdownCommand : AdminCommand
+    public class ShutdownCommand : ModuleBase<SocketCommandContext>
     {
-        private readonly IAuthorizationService _authorizationService;
-        private readonly IChessService _chessService;
-        public ShutdownCommand(IAuthorizationService authorizationService, IChessService chessService) : base(authorizationService)
-        {
-            _authorizationService = authorizationService;
-            _chessService = chessService;
-        }
-
+        public ShutdownCommand()
+        { }
+        [IsAdmin]
         [Command("shutdown")]
-        public async Task SayAsync(string message = "")
+        public Task Shutdown()
         {
-            await Task.Run(async () => {
-                await Authorize();
-
-                Program.ShutdownEvent.Set();
-            });
+            Program.ShutdownEvent.Set();
+            return Task.CompletedTask;
         }
     }
 }
