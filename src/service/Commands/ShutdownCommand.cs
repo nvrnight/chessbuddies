@@ -15,6 +15,7 @@ namespace ChessBuddies.Commands
         { }
         [IsAdmin]
         [Command("shutdown")]
+        [Summary("This will save on-going games to ./state.json and shutdown the bot.")]
         public Task Shutdown()
         {
             Program.ShutdownEvent.Set();

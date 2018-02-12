@@ -22,7 +22,7 @@ namespace ChessBuddies.Commands
         [Command]
         public async Task HelpAsync()
         {
-            string prefix = "!" ?? $"@{Context.Client.CurrentUser.Username} ";
+            string prefix = "!";
             var commands = _commands.Commands.Where(x => !string.IsNullOrWhiteSpace(x.Summary))
                      .GroupBy(x => x.Name)
                      .Select(x => x.First());
@@ -43,11 +43,14 @@ namespace ChessBuddies.Commands
         [Command]
         public async Task HelpAsync(string commandName)
         {
+            string prefix = "!";
+            // Strip the prefix if it's there
+            if (commandName[0].ToString() == prefix)
+                commandName = commandName.Substring(0);
+
             string alias = $"{commandName}".ToLower();
-            string prefix = "!" ?? $"@{Context.Client.CurrentUser.Username} ";
 
             var commands = _commands.Commands.Where(x => !string.IsNullOrWhiteSpace(x.Summary));
-
 
             var command = commands.Where(x => x.Aliases.Contains(alias));
             var embed = new EmbedBuilder();
