@@ -19,7 +19,7 @@ A .NET Core based Discord chess bot
 * **!stats** or **!stats @SomeDiscordUser**, displays yours and the bot's stats or the referenced user's stats and their stats against you.
 
 ### Administration Commands
-* **!shutdown**, this will save on-going games to ./state.json and shutdown the bot.
+* **!shutdown**, this will save on-going games and shutdown the bot.
 * **!games**, views information about ongoing games
 * **!game**, view a game
 * **!endgame {id}**, end a game, id can be found from the output of **!games**
