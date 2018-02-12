@@ -61,7 +61,6 @@ namespace ChessBuddies
                 .AddSingleton<IAssetService, AssetService>()
                 .AddSingleton<IDiscordBotsService, DiscordBotsService>(s => new DiscordBotsService(discordBotsApiKey, discordBotsBotId))
                 .AddSingleton<IChessService, ChessService>(s => new ChessService(timeout, s.GetService<IAssetService>(), _services))
-                .AddSingleton<IAuthorizationService, AuthorizationService>(s => new AuthorizationService(adminUsernames))
                 .AddSingleton<ChessGame, ChessGame>()
                 .AddSingleton(_client)
                 .AddSingleton(_commands)
