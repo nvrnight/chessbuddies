@@ -291,7 +291,8 @@ namespace ChessBuddies.Chess.Commands
                 var statsBuilder = new StringBuilder();
 
                 var authorGameStats = _db.GameStats.Where(x =>
-                    x.challenged == authorId || x.challenger == authorId
+                    (x.challenged == authorId || x.challenger == authorId) &&
+                    x.challenged != x.challenger
                 );
                 var authorWonGames = authorGameStats.Where(x => x.winner == authorId);
 
@@ -299,44 +300,47 @@ namespace ChessBuddies.Chess.Commands
                 if (user != null)
                 {
                         
-                        var userId = (long)user.Id;
+                    var userId = (long)user.Id;
 
-                        var userGames = _db.GameStats.Where(x =>
-                            x.challenged == userId || x.challenger == userId
-                        );
+                    var userGames = _db.GameStats.Where(x =>
+                        (x.challenged == userId || x.challenger == userId) &&
+                        x.challenged != x.challenger
+                    );
 
-                        var userWonGames = userGames.Where(x => x.winner == authorId);
+                    var userWonGames = userGames.Where(x => x.winner == userId);
 
-                        var authorGamesAgainstUser = authorGameStats.Where(x => x.challenged == userId || x.challenger == userId);
+                    var authorGamesAgainstUser = authorGameStats.Where(x => x.challenged == userId || x.challenger == userId);
 
-                        var authorWonGamesAgainstUser = authorGamesAgainstUser.Where(x => x.winner == authorId);
+                    var authorWonGamesAgainstUser = authorGamesAgainstUser.Where(x => x.winner == authorId);
 
-                        AppendStats(statsBuilder,
-                            $"**{user.Username}'s Stats**",
-                            userGames.Count(),
-                            userWonGames.Count(x => x.winner == x.challenger),
-                            userWonGames.Count(x => x.winner == x.challenged),
-                            userGames.Count(x => x.winner == null),
-                            userWonGames.Count()
-                        );
+                    AppendStats(statsBuilder,
+                        $"**{user.Username}'s Stats**",
+                        userGames.Count(),
+                        userWonGames.Count(x => x.winner == x.challenger),
+                        userWonGames.Count(x => x.winner == x.challenged),
+                        userGames.Count(x => x.winner == null),
+                        userWonGames.Count()
+                    );
 
-                        AppendStats(statsBuilder,
-                            $"**{Context.Message.Author.Username}'s Stats vs {user.Username}**",
-                            authorGamesAgainstUser.Count(),
-                            authorWonGamesAgainstUser.Count(x => x.winner == x.challenger),
-                            authorWonGamesAgainstUser.Count(x => x.winner == x.challenged),
-                            authorGamesAgainstUser.Count(x => x.winner == null),
-                            authorWonGamesAgainstUser.Count()
-                        );
+                    AppendStats(statsBuilder,
+                        $"**{Context.Message.Author.Username}'s Stats vs {user.Username}**",
+                        authorGamesAgainstUser.Count(),
+                        authorWonGamesAgainstUser.Count(x => x.winner == x.challenger),
+                        authorWonGamesAgainstUser.Count(x => x.winner == x.challenged),
+                        authorGamesAgainstUser.Count(x => x.winner == null),
+                        authorWonGamesAgainstUser.Count()
+                    );
                 }
                 else
                 {
+                    var games = _db.GameStats.Where(x => x.challenged != x.challenger);
+
                     AppendStats(statsBuilder,
                         "**Bot Stats**",
-                        _db.GameStats.Count(),
-                        _db.GameStats.Count(x => x.winner == x.challenger),
-                        _db.GameStats.Count(x => x.winner == x.challenged),
-                        _db.GameStats.Count(x => x.winner == null)
+                        games.Count(),
+                        games.Count(x => x.winner == x.challenger),
+                        games.Count(x => x.winner == x.challenged),
+                        games.Count(x => x.winner == null)
                     );
 
                     AppendStats(statsBuilder,
